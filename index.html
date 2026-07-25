@@ -26,19 +26,14 @@
     }
     .app-shell{ flex-direction: row !important; height: 92vh !important; }
     .app-header{
-      flex-direction: column !important; align-items: flex-start !important;
-      width: 230px !important; flex-shrink: 0 !important; height: 100% !important;
+      flex-direction: column !important; align-items: stretch !important;
+      width: 220px !important; flex-shrink: 0 !important; height: 100% !important;
       border-right: 1px solid var(--border) !important; border-bottom: none !important;
-      padding: 24px 20px !important; gap: 18px !important;
+      padding: 20px 16px !important; gap: 8px !important; overflow-x: visible !important;
     }
-    .app-header > div{ margin-left: 0 !important; text-align: left !important; }
-    .tab-bar{
-      flex-direction: column !important; width: 180px !important; flex-shrink: 0 !important;
-      border-top: none !important; border-right: 1px solid var(--border) !important;
-      position: static !important; box-shadow: none !important; order: -1 !important;
-      padding-top: 10px !important; justify-content: flex-start !important;
-    }
-    .tab-bar button{ flex-direction: row !important; justify-content: flex-start !important; gap: 10px !important; padding: 12px 20px !important; }
+    .app-header button{ justify-content: flex-start !important; }
+    .app-header button:not(:first-child){ width: 100% !important; margin-left: 0 !important; }
+    .app-header button:first-child{ margin-bottom: 8px !important; }
     .app-content{ flex: 1 !important; overflow-y: auto !important; min-width: 0 !important; }
     .sheet-overlay{ align-items: center !important; }
     .sheet-panel{ border-radius: 20px !important; max-height: 82vh !important; box-shadow: 0 20px 60px rgba(46,58,34,0.3) !important; }
@@ -412,15 +407,20 @@ function AppInner(){
   return (
     <div className="app-shell" style={{ display:"flex", height:"100vh" }}>
       {/* header */}
-      <div className="app-header" style={{ padding:"14px 16px 10px", display:"flex", alignItems:"center", gap:10, borderBottom:`1px solid ${T.border}`, background:T.surface }}>
-        <button onClick={() => { setSheet(null); setTab("agenda"); }} title="Ir al inicio" style={{ border:"none", background:"transparent", padding:0, display:"flex", alignItems:"center" }}>
-          <img src={LOGO_SRC} alt="Sonia Lanoza" style={{ height:34, width:"auto" }} />
+      {/* header — logo + navegación + configuración, todo en una sola línea de botones */}
+      <div className="app-header" style={{ padding:"10px 12px", display:"flex", alignItems:"center", gap:6, borderBottom:`1px solid ${T.border}`, background:T.surface, overflowX:"auto" }}>
+        <button onClick={() => { setSheet(null); setTab("agenda"); }} title="Ir al inicio" style={{ border:"none", background:"transparent", padding:0, display:"flex", alignItems:"center", flexShrink:0, marginRight:4 }}>
+          <img src={LOGO_SRC} alt="Sonia Lanoza" style={{ height:30, width:"auto" }} />
         </button>
-        <div style={{ marginLeft:"auto", textAlign:"right" }}>
-          <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:15, fontWeight:700, color:T.olive }}>{todayCount} citas hoy</div>
-          <div style={{ fontSize:10.5, color:T.inkSoft }}>{SPA_PHONE_LOCAL}</div>
-        </div>
-        <button onClick={() => setSheet({ mode:"backup" })} title="Copia de seguridad" style={{ ...navBtn, marginLeft:4 }}>⚙️</button>
+        <button onClick={() => { setSheet(null); setTab("agenda"); }} style={{ ...navPill, background: (!sheet && tab==="agenda") ? T.ink : T.surface, color: (!sheet && tab==="agenda") ? "#fff" : T.ink }}>
+          📅 Agendamiento{todayCount > 0 ? ` (${todayCount})` : ""}
+        </button>
+        <button onClick={() => { setSheet(null); setTab("clientes"); }} style={{ ...navPill, background: (!sheet && tab==="clientes") ? T.ink : T.surface, color: (!sheet && tab==="clientes") ? "#fff" : T.ink }}>
+          🗂️ Clientes
+        </button>
+        <button onClick={() => setSheet({ mode:"backup" })} style={{ ...navPill, marginLeft:"auto" }}>
+          ⚙️ Copia de seguridad
+        </button>
       </div>
 
       <div className="app-content" style={{ display:"flex", flexDirection:"column", flex:1, minHeight:0 }}>
@@ -522,7 +522,7 @@ function AppInner(){
           </div>
 
           {/* FAB */}
-          <button onClick={() => openNew()} style={{ position:"absolute", right:18, bottom:82, width:56, height:56, borderRadius:"50%",
+          <button onClick={() => openNew()} style={{ position:"absolute", right:18, bottom:22, width:56, height:56, borderRadius:"50%",
             background:T.ink, color:"#fff", border:"none", fontSize:26, boxShadow:"0 8px 20px rgba(46,58,34,0.35)", display:"flex", alignItems:"center", justifyContent:"center" }}>
             +
           </button>
@@ -535,19 +535,6 @@ function AppInner(){
           onNew={() => setSheet({ mode:"newClient", name:"", phone:"", birthdate:"", tratamientos:"", notes:"" })}
         />
       )}
-      </div>
-
-      {/* bottom tab bar — siempre visible, incluso con una ficha abierta encima */}
-      <div className="tab-bar" style={{ display:"flex", borderTop:`1px solid ${T.border}`, background:T.surface, paddingBottom:"env(safe-area-inset-bottom, 0px)",
-        position:"sticky", bottom:0, zIndex:60, boxShadow:"0 -2px 10px rgba(46,58,34,0.08)" }}>
-        <button onClick={() => { setSheet(null); setTab("agenda"); }} style={{ flex:1, padding:"10px 0 12px", border:"none", background:"transparent", display:"flex", flexDirection:"column", alignItems:"center", gap:2 }}>
-          <span style={{ fontSize:18 }}>📅</span>
-          <span style={{ fontSize:11, fontWeight:700, color: (!sheet && tab==="agenda") ? T.ink : T.inkSoft }}>Agendamiento</span>
-        </button>
-        <button onClick={() => { setSheet(null); setTab("clientes"); }} style={{ flex:1, padding:"10px 0 12px", border:"none", background:"transparent", display:"flex", flexDirection:"column", alignItems:"center", gap:2 }}>
-          <span style={{ fontSize:18 }}>🗂️</span>
-          <span style={{ fontSize:11, fontWeight:700, color: (!sheet && tab==="clientes") ? T.ink : T.inkSoft }}>Clientes</span>
-        </button>
       </div>
 
       {sheet && (
@@ -586,6 +573,7 @@ function AppInner(){
 }
 
 const navBtn = { width:32, height:32, borderRadius:9, border:`1px solid ${T.border}`, background:T.surface, fontSize:18, color:T.ink, display:"flex", alignItems:"center", justifyContent:"center" };
+const navPill = { border:"none", borderRadius:999, padding:"8px 12px", fontSize:12.5, fontWeight:700, whiteSpace:"nowrap", flexShrink:0 };
 const pillBtnStyle = { padding:"5px 10px", borderRadius:999, fontSize:11.5, fontWeight:700, textDecoration:"none", border:`1px solid ${T.border}`, whiteSpace:"nowrap" };
 
 function Chip({ active, onClick, label, dot }){
@@ -615,7 +603,7 @@ function ClientesView({ clients, apptsForClient, onOpen, onNew }){
         {filtered.map(c => <ClientCard key={c.id} client={c} history={apptsForClient(c)} onClick={() => onOpen(c)} />)}
         {filtered.length === 0 && <div style={{ textAlign:"center", color:T.inkSoft, fontSize:13.5, padding:"40px 20px" }}>Sin resultados.</div>}
       </div>
-      <button onClick={onNew} style={{ position:"absolute", right:18, bottom:82, width:56, height:56, borderRadius:"50%",
+      <button onClick={onNew} style={{ position:"absolute", right:18, bottom:22, width:56, height:56, borderRadius:"50%",
         background:T.ink, color:"#fff", border:"none", fontSize:26, boxShadow:"0 8px 20px rgba(46,58,34,0.35)", display:"flex", alignItems:"center", justifyContent:"center" }}>
         +
       </button>
