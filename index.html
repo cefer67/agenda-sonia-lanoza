@@ -26,14 +26,13 @@
     }
     .app-shell{ flex-direction: row !important; height: 92vh !important; }
     .app-header{
-      flex-direction: column !important; align-items: stretch !important;
+      flex-direction: column !important; align-items: flex-start !important;
       width: 220px !important; flex-shrink: 0 !important; height: 100% !important;
       border-right: 1px solid var(--border) !important; border-bottom: none !important;
-      padding: 20px 16px !important; gap: 8px !important; overflow-x: visible !important;
+      padding: 20px 16px !important; gap: 10px !important; overflow-x: visible !important;
     }
-    .app-header button{ justify-content: flex-start !important; }
-    .app-header button:not(:first-child){ width: 100% !important; margin-left: 0 !important; }
-    .app-header button:first-child{ margin-bottom: 8px !important; }
+    .app-header button{ justify-content: center !important; }
+    .app-header-social{ margin-left: 0 !important; margin-top: auto !important; flex-wrap: wrap !important; }
     .app-content{ flex: 1 !important; overflow-y: auto !important; min-width: 0 !important; }
     .sheet-overlay{ align-items: center !important; }
     .sheet-panel{ border-radius: 20px !important; max-height: 82vh !important; box-shadow: 0 20px 60px rgba(46,58,34,0.3) !important; }
@@ -41,6 +40,36 @@
   button{ font-family:inherit; cursor:pointer; }
   input,select{ font-family:inherit; }
   ::-webkit-scrollbar{ display:none; }
+
+  /* Botones 3D cuadrados (nav + redes sociales) */
+  .sqbtn{
+    width:46px; height:46px; flex-shrink:0; border:none; border-radius:14px;
+    display:flex; align-items:center; justify-content:center;
+    background: linear-gradient(160deg, #FFFEFB 0%, #F1EAD9 60%, #E9E0CA 100%);
+    box-shadow: inset 0 1px 1px rgba(255,255,255,0.9), inset 0 -3px 4px rgba(120,100,60,0.12),
+      0 3px 6px rgba(46,58,34,0.16), 0 1px 2px rgba(46,58,34,0.12);
+    transition: transform .08s ease;
+  }
+  .sqbtn:active{ transform: translateY(1px) scale(0.97); }
+  .sqbtn.is-active{
+    background: linear-gradient(160deg, #6B7D4C 0%, #51623A 60%, #445430 100%);
+    box-shadow: inset 0 1px 1px rgba(255,255,255,0.25), inset 0 -3px 4px rgba(0,0,0,0.25),
+      0 3px 6px rgba(46,58,34,0.3), 0 1px 2px rgba(46,58,34,0.2);
+  }
+  .sqbtn.sq-fb{ background: linear-gradient(160deg, #5B8DEF 0%, #1877F2 65%, #145DC4 100%); }
+  .sqbtn.sq-ig{ background: linear-gradient(160deg, #F9A34B 0%, #E1306C 45%, #7B3FE4 100%); }
+  .sqbtn.sq-wa{ background: linear-gradient(160deg, #4BD87C 0%, #25D366 60%, #1DAA53 100%); }
+
+  /* Tarjeta 3D rectangular para el logo */
+  .logo3d{
+    height:52px; padding:6px 16px; flex-shrink:0; border:none; border-radius:16px;
+    display:flex; align-items:center; justify-content:center;
+    background: linear-gradient(160deg, #FFFEFB 0%, #F1EAD9 60%, #E9E0CA 100%);
+    box-shadow: inset 0 1px 1px rgba(255,255,255,0.9), inset 0 -3px 4px rgba(120,100,60,0.12),
+      0 3px 6px rgba(46,58,34,0.16), 0 1px 2px rgba(46,58,34,0.12);
+    transition: transform .08s ease;
+  }
+  .logo3d:active{ transform: translateY(1px) scale(0.98); }
 </style>
 </head>
 <body>
@@ -56,6 +85,21 @@
 <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
 
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyA7Zwhw5WlP3AY5rk0gQ0HeVTs6eKAW7FY",
+    authDomain: "sonia-lanoza-agenda.firebaseapp.com",
+    projectId: "sonia-lanoza-agenda",
+    storageBucket: "sonia-lanoza-agenda.firebasestorage.app",
+    messagingSenderId: "203006403226",
+    appId: "1:203006403226:web:98f1de91a4cabde42ab523"
+  };
+  firebase.initializeApp(firebaseConfig);
+  window.db = firebase.firestore();
+</script>
+
 <script type="text/babel" data-presets="react">
 const { useState, useMemo, useEffect, useRef } = React;
 
@@ -68,6 +112,11 @@ const LOGO_SRC = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAL4AAABlCAYAAADz
 const SPA_NAME = "Sonia Lanoza Spa & Belleza";
 const SPA_PHONE_LOCAL = "0986 371827";
 const SPA_PHONE_INTL = "+595 986 371827";
+
+// Cambia estos dos links por las páginas reales del spa.
+const FACEBOOK_URL = "https://www.facebook.com/share/1Bh7jebf2Q/?mibextid=wwXIfr";
+const INSTAGRAM_URL = "https://www.instagram.com/spasonialanoza?igsh=Z2owMWIwYzNobTN6&utm_source=qr";
+const WHATSAPP_URL = "https://wa.me/595986371827";
 
 const PRO_COLOR_PALETTE = ["#51623A", "#B2717A", "#C9A66B", "#6E8398", "#8A6FA8", "#A97C50", "#5E8C7A", "#B0533C"];
 function seedPros(){
@@ -308,12 +357,40 @@ function AppInner(){
   const today = useMemo(() => new Date(), []);
   const [current, setCurrent] = useState(today);
   const [proFilter, setProFilter] = useState("all"); // "all" or a pro id
-  const [appointments, setAppointments] = useState(() => seed(today));
-  const [pros, setPros] = useState(() => seedPros());
-  const [clients, setClients] = useState(() => seedClients(today));
+  const [appointments, setAppointments] = useState([]);
+  const [pros, setPros] = useState([]);
+  const [clients, setClients] = useState([]);
+  const [synced, setSynced] = useState(false);
   const [tab, setTab] = useState("agenda"); // "agenda" | "clientes"
   const [sheet, setSheet] = useState(null); // {mode:'new'|'detail'|'client', ...}
   const timelineRef = useRef(null);
+
+  // Sincronización en tiempo real con Firestore: cualquier cambio hecho desde
+  // otro celular/notebook aparece acá solo, sin recargar la página.
+  useEffect(() => {
+    const unsubApts = db.collection("appointments").onSnapshot(snap => {
+      setAppointments(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+    const unsubClients = db.collection("clients").onSnapshot(snap => {
+      setClients(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+    const unsubPros = db.collection("pros").onSnapshot(async snap => {
+      if (snap.empty) {
+        const metaRef = db.collection("meta").doc("init");
+        const metaDoc = await metaRef.get();
+        if (!metaDoc.exists) {
+          await metaRef.set({ seededAt: new Date().toISOString() });
+          const batch = db.batch();
+          seedPros().forEach(p => { const { id, ...rest } = p; batch.set(db.collection("pros").doc(), rest); });
+          await batch.commit();
+        }
+      } else {
+        setPros(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      }
+      setSynced(true);
+    });
+    return () => { unsubApts(); unsubClients(); unsubPros(); };
+  }, []);
 
   useEffect(() => {
     if (timelineRef.current) timelineRef.current.scrollTop = Math.max(0, (9*60 - DAY_START)/SLOT*ROW_H - 60);
@@ -334,13 +411,13 @@ function AppInner(){
     if(!nm) return;
     const usedColors = pros.map(p => p.color);
     const color = PRO_COLOR_PALETTE.find(c => !usedColors.includes(c)) || PRO_COLOR_PALETTE[pros.length % PRO_COLOR_PALETTE.length];
-    setPros(list => [...list, { id:"p"+Date.now(), name:nm, role: role.trim() || "Profesional", color, initials: initialsOf(nm) }]);
+    db.collection("pros").add({ name:nm, role: role.trim() || "Profesional", color, initials: initialsOf(nm) });
   }
   function removePro(id){
     if (pros.length <= 1){ alert("Tiene que quedar al menos una profesional cargada."); return; }
     const inUse = appointments.some(a => a.profId === id);
     if (inUse){ alert("Esta profesional tiene citas agendadas. Reasigna o elimina esas citas antes de borrarla."); return; }
-    setPros(list => list.filter(p => p.id !== id));
+    db.collection("pros").doc(id).delete();
     if (proFilter === id) setProFilter("all");
   }
   function clientOf(id){ return clients.find(c => c.id === id); }
@@ -351,15 +428,10 @@ function AppInner(){
 
   function upsertClient(name, phone){
     const key = clientKey(name, phone);
-    let found = null;
-    setClients(list => {
-      const idx = list.findIndex(c => clientKey(c.name, c.phone) === key);
-      if (idx >= 0){ found = list[idx]; return list; }
-      const created = { id:"c"+Date.now(), name, phone, birthdate:"", tratamientos:"", notes:"", clinical: blankClinical(), treatmentPlans: [] };
-      found = created;
-      return [...list, created];
-    });
-    return found;
+    const found = clients.find(c => clientKey(c.name, c.phone) === key);
+    if (found) return found;
+    db.collection("clients").add({ name, phone, birthdate:"", tratamientos:"", notes:"", clinical: blankClinical(), treatmentPlans: [] });
+    return null;
   }
 
   function openNew(prefillStart){
@@ -369,29 +441,32 @@ function AppInner(){
     if(!sheet.client.trim()) return;
     const name = sheet.client.trim(), phone = sheet.phone.trim();
     upsertClient(name, phone);
-    setAppointments(list => [...list, { id:"a"+Date.now(), profId:sheet.profId, date:sheet.date, start:sheet.start, duration:Number(sheet.duration), client:name, phone, service:sheet.service, status:"pendiente", reminderStatus:"pendiente" }]);
+    db.collection("appointments").add({ profId:sheet.profId, date:sheet.date, start:sheet.start, duration:Number(sheet.duration), client:name, phone, service:sheet.service, status:"pendiente", reminderStatus:"pendiente" });
     setSheet(null);
   }
-  function removeAppt(id){ setAppointments(list => list.filter(a => a.id !== id)); setSheet(null); }
+  function removeAppt(id){ db.collection("appointments").doc(id).delete(); setSheet(null); }
   function toggleStatus(id){
-    setAppointments(list => list.map(a => a.id===id ? {...a, status: a.status==="confirmada"?"pendiente":"confirmada"} : a));
-    setSheet(s => s && s.id===id ? {...s, status: s.status==="confirmada"?"pendiente":"confirmada"} : s);
+    const appt = appointments.find(a => a.id === id);
+    if (!appt) return;
+    const status = appt.status === "confirmada" ? "pendiente" : "confirmada";
+    db.collection("appointments").doc(id).update({ status });
+    setSheet(s => s && s.id===id ? {...s, status} : s);
   }
-  function sendReminder(id, pro){
-    setAppointments(list => list.map(a => a.id===id ? {...a, reminderStatus:"enviado"} : a));
+  function sendReminder(id){
+    db.collection("appointments").doc(id).update({ reminderStatus:"enviado" });
     setSheet(s => s && s.id===id ? {...s, reminderStatus:"enviado"} : s);
   }
   function confirmReminder(id){
-    setAppointments(list => list.map(a => a.id===id ? {...a, reminderStatus:"confirmada", status:"confirmada"} : a));
+    db.collection("appointments").doc(id).update({ reminderStatus:"confirmada", status:"confirmada" });
     setSheet(s => s && s.id===id ? {...s, reminderStatus:"confirmada", status:"confirmada"} : s);
   }
   function updateClient(id, patch){
-    setClients(list => list.map(c => c.id===id ? {...c, ...patch} : c));
+    db.collection("clients").doc(id).update(patch);
     setSheet(s => s && s.mode==="client" && s.id===id ? {...s, ...patch} : s);
   }
   function markBirthdaySent(id){ updateClient(id, { birthdaySentYear: today.getFullYear() }); }
   function deleteClient(id){
-    setClients(list => list.filter(c => c.id !== id));
+    db.collection("clients").doc(id).delete();
     setSheet(null);
   }
 
@@ -404,23 +479,46 @@ function AppInner(){
   const rows = [];
   for (let m = DAY_START; m < DAY_END; m += SLOT) rows.push(m);
 
+  if (!synced) {
+    return (
+      <div style={{ minHeight:"100vh", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:14, background:T.bg }}>
+        <img src={LOGO_SRC} alt={SPA_NAME} style={{ width:140, height:"auto" }} />
+        <div style={{ color:T.inkSoft, fontSize:13.5 }}>Sincronizando…</div>
+      </div>
+    );
+  }
+
   return (
     <div className="app-shell" style={{ display:"flex", height:"100vh" }}>
       {/* header */}
-      {/* header — logo + navegación + configuración, todo en una sola línea de botones */}
-      <div className="app-header" style={{ padding:"10px 12px", display:"flex", alignItems:"center", gap:6, borderBottom:`1px solid ${T.border}`, background:T.surface, overflowX:"auto" }}>
-        <button onClick={() => { setSheet(null); setTab("agenda"); }} title="Ir al inicio" style={{ border:"none", background:"transparent", padding:0, display:"flex", alignItems:"center", flexShrink:0, marginRight:4 }}>
-          <img src={LOGO_SRC} alt="Sonia Lanoza" style={{ height:30, width:"auto" }} />
+      {/* header — logo + navegación + configuración + redes, todo en botones cuadrados 3D */}
+      <div className="app-header" style={{ padding:"10px 12px", display:"flex", alignItems:"center", gap:8, borderBottom:`1px solid ${T.border}`, background:T.surface, overflowX:"auto" }}>
+        <button onClick={() => { setSheet(null); setTab("agenda"); }} title="Ir al inicio" className="logo3d" style={{ marginRight:2 }}>
+          <img src={LOGO_SRC} alt="Sonia Lanoza" style={{ height:40, width:"auto" }} />
         </button>
-        <button onClick={() => { setSheet(null); setTab("agenda"); }} style={{ ...navPill, background: (!sheet && tab==="agenda") ? T.ink : T.surface, color: (!sheet && tab==="agenda") ? "#fff" : T.ink }}>
-          📅 Agendamiento{todayCount > 0 ? ` (${todayCount})` : ""}
+
+        <div style={{ position:"relative" }}>
+          <button onClick={() => { setSheet(null); setTab("agenda"); }} title="Agendamiento" className={"sqbtn" + ((!sheet && tab==="agenda") ? " is-active" : "")}>
+            <IconCalendar color={(!sheet && tab==="agenda") ? "#fff" : T.olive} />
+          </button>
+          {todayCount > 0 && (
+            <span style={{ position:"absolute", top:-4, right:-4, background:T.gold, color:"#fff", fontSize:10, fontWeight:700, borderRadius:999, minWidth:16, height:16, display:"flex", alignItems:"center", justifyContent:"center", padding:"0 3px", boxShadow:"0 1px 2px rgba(0,0,0,0.25)" }}>{todayCount}</span>
+          )}
+        </div>
+
+        <button onClick={() => { setSheet(null); setTab("clientes"); }} title="Clientes" className={"sqbtn" + ((!sheet && tab==="clientes") ? " is-active" : "")}>
+          <IconFolder color={(!sheet && tab==="clientes") ? "#fff" : T.olive} />
         </button>
-        <button onClick={() => { setSheet(null); setTab("clientes"); }} style={{ ...navPill, background: (!sheet && tab==="clientes") ? T.ink : T.surface, color: (!sheet && tab==="clientes") ? "#fff" : T.ink }}>
-          🗂️ Clientes
+
+        <button onClick={() => setSheet({ mode:"backup" })} title="Copia de seguridad" className="sqbtn is-active">
+          <IconGear color="#fff" />
         </button>
-        <button onClick={() => setSheet({ mode:"backup" })} style={{ ...navPill, marginLeft:"auto" }}>
-          ⚙️ Copia de seguridad
-        </button>
+
+        <div className="app-header-social" style={{ marginLeft:"auto", display:"flex", gap:8 }}>
+          <a href={FACEBOOK_URL} target="_blank" rel="noreferrer" title="Facebook" className="sqbtn sq-fb" style={socialBtn}><IconFacebook /></a>
+          <a href={INSTAGRAM_URL} target="_blank" rel="noreferrer" title="Instagram" className="sqbtn sq-ig" style={socialBtn}><IconInstagram /></a>
+          <a href={WHATSAPP_URL} target="_blank" rel="noreferrer" title="WhatsApp" className="sqbtn sq-wa" style={socialBtn}><IconWhatsapp /></a>
+        </div>
       </div>
 
       <div className="app-content" style={{ display:"flex", flexDirection:"column", flex:1, minHeight:0 }}>
@@ -555,14 +653,26 @@ function AppInner(){
             <NewClientForm sheet={sheet} setSheet={setSheet}
               onSave={() => {
                 if(!sheet.name.trim()) return;
-                setClients(list => [...list, { id:"c"+Date.now(), name:sheet.name.trim(), phone:sheet.phone.trim(), birthdate:sheet.birthdate, tratamientos:sheet.tratamientos, notes:sheet.notes, clinical: blankClinical(), treatmentPlans: [] }]);
+                db.collection("clients").add({ name:sheet.name.trim(), phone:sheet.phone.trim(), birthdate:sheet.birthdate, tratamientos:sheet.tratamientos, notes:sheet.notes, clinical: blankClinical(), treatmentPlans: [] });
                 setSheet(null);
               }}
               onClose={() => setSheet(null)} />
           )}
           {sheet.mode === "backup" && (
             <BackupView clients={clients} appointments={appointments}
-              onRestore={(data) => { setClients(data.clients||[]); setAppointments(data.appointments||[]); if(data.pros) setPros(data.pros); }}
+              onRestore={async (data) => {
+                const collections = [["appointments", appointments], ["clients", clients], ["pros", pros]];
+                for (const [name, current] of collections) {
+                  const delBatch = db.batch();
+                  current.forEach(item => delBatch.delete(db.collection(name).doc(item.id)));
+                  await delBatch.commit();
+                }
+                const writeBatch = db.batch();
+                (data.appointments||[]).forEach(item => { const { id, ...rest } = item; writeBatch.set(db.collection("appointments").doc(), rest); });
+                (data.clients||[]).forEach(item => { const { id, ...rest } = item; writeBatch.set(db.collection("clients").doc(), rest); });
+                (data.pros||[]).forEach(item => { const { id, ...rest } = item; writeBatch.set(db.collection("pros").doc(), rest); });
+                await writeBatch.commit();
+              }}
               pros={pros} onAddPro={addPro} onRemovePro={removePro}
               onClose={() => setSheet(null)} />
           )}
@@ -573,7 +683,65 @@ function AppInner(){
 }
 
 const navBtn = { width:32, height:32, borderRadius:9, border:`1px solid ${T.border}`, background:T.surface, fontSize:18, color:T.ink, display:"flex", alignItems:"center", justifyContent:"center" };
-const navPill = { border:"none", borderRadius:999, padding:"8px 12px", fontSize:12.5, fontWeight:700, whiteSpace:"nowrap", flexShrink:0 };
+function IconCalendar({ color }){
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+      <rect x="3" y="5" width="18" height="16" rx="3" stroke={color} strokeWidth="1.8"/>
+      <path d="M3 9.5H21" stroke={color} strokeWidth="1.8"/>
+      <path d="M8 3V6.5M16 3V6.5" stroke={color} strokeWidth="1.8" strokeLinecap="round"/>
+      <rect x="6.5" y="12" width="3.2" height="3.2" rx="0.8" fill={color}/>
+      <rect x="14.3" y="12" width="3.2" height="3.2" rx="0.8" fill={color} opacity="0.45"/>
+    </svg>
+  );
+}
+function IconFolder({ color }){
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+      <path d="M3 7.5C3 6.4 3.9 5.5 5 5.5H9.5L11.5 8H19C20.1 8 21 8.9 21 10V17C21 18.1 20.1 19 19 19H5C3.9 19 3 18.1 3 17V7.5Z"
+        stroke={color} strokeWidth="1.8" strokeLinejoin="round"/>
+      <circle cx="9" cy="13.5" r="1.6" fill={color}/>
+      <path d="M6 17.3C6.4 15.9 7.6 15 9 15C10.4 15 11.6 15.9 12 17.3" stroke={color} strokeWidth="1.6" strokeLinecap="round"/>
+    </svg>
+  );
+}
+function IconGear({ color }){
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="12" r="3.1" stroke={color} strokeWidth="1.8"/>
+      <path d="M12 3.5V5.8M12 18.2V20.5M20.5 12H18.2M5.8 12H3.5M17.7 6.3L16.1 7.9M7.9 16.1L6.3 17.7M17.7 17.7L16.1 16.1M7.9 7.9L6.3 6.3"
+        stroke={color} strokeWidth="1.8" strokeLinecap="round"/>
+    </svg>
+  );
+}
+function IconFacebook(){
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <path d="M14 9H16.5V6H14C12.07 6 10.5 7.57 10.5 9.5V11H8.5V14H10.5V20H13.5V14H15.7L16.2 11H13.5V9.8C13.5 9.35 13.7 9 14 9Z" fill="#fff"/>
+    </svg>
+  );
+}
+function IconInstagram(){
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <rect x="4" y="4" width="16" height="16" rx="5" stroke="#fff" strokeWidth="1.8"/>
+      <circle cx="12" cy="12" r="3.4" stroke="#fff" strokeWidth="1.8"/>
+      <circle cx="16.6" cy="7.4" r="1.1" fill="#fff"/>
+    </svg>
+  );
+}
+function IconWhatsapp(){
+  return (
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none">
+      <path d="M12 3.5C7.3 3.5 3.5 7.3 3.5 12C3.5 13.6 3.9 15.1 4.7 16.3L3.5 20.5L7.9 19.3C9.1 19.9 10.5 20.3 12 20.3C16.7 20.3 20.5 16.5 20.5 11.8C20.5 7.3 16.7 3.5 12 3.5Z"
+        fill="#fff" opacity="0.15"/>
+      <path d="M12 4.2C7.7 4.2 4.2 7.7 4.2 12C4.2 13.5 4.6 14.9 5.4 16.1L4.3 19.7L8 18.6C9.2 19.3 10.6 19.7 12 19.7C16.3 19.7 19.8 16.2 19.8 11.9C19.8 7.7 16.3 4.2 12 4.2Z"
+        stroke="#fff" strokeWidth="1.3"/>
+      <path d="M9 9.3C9.1 8.9 9.5 8.9 9.8 8.9C10 8.9 10.2 8.9 10.4 9.4C10.6 9.9 11 10.9 11 11C11.1 11.1 11.1 11.3 11 11.4C10.8 11.7 10.6 11.9 10.8 12.2C11.4 13.2 12.2 14 13.3 14.5C13.6 14.6 13.7 14.6 13.9 14.3C14.1 14.1 14.4 13.7 14.6 13.5C14.8 13.3 15 13.3 15.3 13.4C15.6 13.5 16.6 14 16.8 14.1C17 14.2 17.2 14.3 17.2 14.5C17.3 15.4 17 16.2 15.9 16.5C14.4 16.9 12.9 16.3 11.6 15.6C9.9 14.6 8.6 13.1 7.9 11.3C7.5 10.4 7.6 9.6 9 9.3Z" fill="#fff"/>
+    </svg>
+  );
+}
+
+const socialBtn = { border:"none", display:"flex", alignItems:"center", justifyContent:"center", textDecoration:"none" };
 const pillBtnStyle = { padding:"5px 10px", borderRadius:999, fontSize:11.5, fontWeight:700, textDecoration:"none", border:`1px solid ${T.border}`, whiteSpace:"nowrap" };
 
 function Chip({ active, onClick, label, dot }){
@@ -868,9 +1036,8 @@ function BackupView({ clients, appointments, onRestore, pros, onAddPro, onRemove
 
       <SectionLabel>Copia de seguridad</SectionLabel>
       <div style={{ fontSize:13, color:T.inkSoft, marginBottom:18, lineHeight:1.5 }}>
-        Esta app guarda los datos solo mientras la tienes abierta en el navegador — si cierras la pestaña o apagas la PC, se pierden.
-        Descarga un backup cuando termines de trabajar y guárdalo en tu computadora (o en una carpeta de la nube).
-        Para seguir otro día, abre esta misma página y restaura ese archivo.
+        Los datos ya se guardan solos en la nube y se sincronizan automáticamente entre el celular y la computadora — no hace falta hacer nada para que se guarden.
+        Igual, te recomendamos descargar un backup de vez en cuando por las dudas. Restaurar un backup reemplaza todos los datos actuales por los del archivo.
       </div>
 
       <div style={{ border:`1px solid ${T.border}`, borderRadius:12, padding:14, marginBottom:14 }}>
