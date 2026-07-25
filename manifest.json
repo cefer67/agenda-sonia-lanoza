@@ -1,0 +1,13 @@
+{
+  "name": "Sonia Lanoza Spa & Belleza - Agenda",
+  "short_name": "Agenda SL",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#FAF8F1",
+  "theme_color": "#51623A",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
