@@ -240,9 +240,16 @@ function playChime(){
     setTimeout(() => ctx.close(), 800);
   } catch(e){}
 }
+function toWaNumber(phone){
+  let clean = (phone||"").replace(/[^0-9]/g,"");
+  if (!clean) return "";
+  if (clean.startsWith("595")) return clean; // ya viene con código de país
+  if (clean.startsWith("0")) return "595" + clean.slice(1); // formato local: 0981123456 -> 595981123456
+  if (clean.length <= 9) return "595" + clean; // le faltaba el 0 y el código de país
+  return clean; // ya parece tener otro código de país cargado a mano
+}
 function waLink(phone, text){
-  const clean = (phone||"").replace(/[^0-9]/g,"");
-  return `https://wa.me/${clean}?text=${encodeURIComponent(text)}`;
+  return `https://wa.me/${toWaNumber(phone)}?text=${encodeURIComponent(text)}`;
 }
 
 function printClient(client, history, proOf){
@@ -966,7 +973,7 @@ function ClientDetail({ client, history, proOf, onUpdate, onSendBirthday, onDele
 
         <SectionLabel>Ficha personal</SectionLabel>
         <Field label="Teléfono (WhatsApp)">
-          <input type="tel" value={client.phone||""} onChange={e => onUpdate({ phone:e.target.value })} placeholder="+56 9 1234 5678" style={inputStyle} />
+          <input type="tel" value={client.phone||""} onChange={e => onUpdate({ phone:e.target.value })} placeholder="+595 981 123456" style={inputStyle} />
         </Field>
         <Field label="Fecha de nacimiento">
           <input type="date" value={client.birthdate||""} onChange={e => onUpdate({ birthdate:e.target.value })} style={inputStyle} />
@@ -1199,7 +1206,7 @@ function NewClientForm({ sheet, setSheet, onSave, onClose }){
         <input autoFocus value={sheet.name} onChange={e => set("name", e.target.value)} placeholder="Nombre del cliente" style={inputStyle} />
       </Field>
       <Field label="Teléfono (WhatsApp)">
-        <input type="tel" value={sheet.phone} onChange={e => set("phone", e.target.value)} placeholder="+56 9 1234 5678" style={inputStyle} />
+        <input type="tel" value={sheet.phone} onChange={e => set("phone", e.target.value)} placeholder="+595 981 123456" style={inputStyle} />
       </Field>
       <Field label="Fecha de nacimiento">
         <input type="date" value={sheet.birthdate} onChange={e => set("birthdate", e.target.value)} style={inputStyle} />
@@ -1261,7 +1268,7 @@ function NewForm({ sheet, setSheet, onSave, onClose, clients, pros, services }){
         </datalist>
       </Field>
       <Field label="Teléfono (WhatsApp)">
-        <input type="tel" value={sheet.phone} onChange={e => set("phone", e.target.value)} placeholder="+56 9 1234 5678" style={inputStyle} />
+        <input type="tel" value={sheet.phone} onChange={e => set("phone", e.target.value)} placeholder="+595 981 123456" style={inputStyle} />
       </Field>
       <Field label="Servicio">
         <select value={sheet.service} onChange={e => set("service", e.target.value)} style={inputStyle}>
