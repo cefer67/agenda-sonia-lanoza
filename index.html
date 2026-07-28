@@ -372,6 +372,7 @@ function AppInner(){
   const [appointments, setAppointments] = useState([]);
   const [pros, setPros] = useState([]);
   const [clients, setClients] = useState([]);
+  const [services, setServices] = useState([]);
   const [synced, setSynced] = useState(false);
   const [tab, setTab] = useState("agenda"); // "agenda" | "clientes"
   const [sheet, setSheet] = useState(null); // {mode:'new'|'detail'|'client', ...}
@@ -401,7 +402,21 @@ function AppInner(){
       }
       setSynced(true);
     });
-    return () => { unsubApts(); unsubClients(); unsubPros(); };
+    const unsubServices = db.collection("services").onSnapshot(async snap => {
+      if (snap.empty) {
+        const metaRef = db.collection("meta").doc("initServices");
+        const metaDoc = await metaRef.get();
+        if (!metaDoc.exists) {
+          await metaRef.set({ seededAt: new Date().toISOString() });
+          const batch = db.batch();
+          SERVICES.forEach(name => { batch.set(db.collection("services").doc(), { name }); });
+          await batch.commit();
+        }
+      } else {
+        setServices(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      }
+    });
+    return () => { unsubApts(); unsubClients(); unsubPros(); unsubServices(); };
   }, []);
 
   useEffect(() => {
@@ -431,6 +446,16 @@ function AppInner(){
     if (inUse){ alert("Esta profesional tiene citas agendadas. Reasigna o elimina esas citas antes de borrarla."); return; }
     db.collection("pros").doc(id).delete();
     if (proFilter === id) setProFilter("all");
+  }
+  function addService(name){
+    const nm = name.trim();
+    if(!nm) return;
+    if (services.some(s => s.name.toLowerCase() === nm.toLowerCase())){ alert("Ese tratamiento ya está cargado."); return; }
+    db.collection("services").add({ name: nm });
+  }
+  function removeService(id){
+    if (services.length <= 1){ alert("Tiene que quedar al menos un tratamiento cargado."); return; }
+    db.collection("services").doc(id).delete();
   }
   function clientOf(id){ return clients.find(c => c.id === id); }
   function apptsForClient(client){
@@ -650,7 +675,7 @@ function AppInner(){
       {sheet && (
         <BottomSheet onClose={() => setSheet(null)}>
           {sheet.mode === "new" && (
-            <NewForm sheet={sheet} setSheet={setSheet} onSave={saveNew} onClose={() => setSheet(null)} clients={clients} pros={pros} />
+            <NewForm sheet={sheet} setSheet={setSheet} onSave={saveNew} onClose={() => setSheet(null)} clients={clients} pros={pros} services={services} />
           )}
           {sheet.mode === "detail" && (
             <Detail appt={sheet} pro={proOf(sheet.profId)} onDelete={() => removeAppt(sheet.id)} onToggle={() => toggleStatus(sheet.id)}
@@ -673,7 +698,7 @@ function AppInner(){
           {sheet.mode === "backup" && (
             <BackupView clients={clients} appointments={appointments}
               onRestore={async (data) => {
-                const collections = [["appointments", appointments], ["clients", clients], ["pros", pros]];
+                const collections = [["appointments", appointments], ["clients", clients], ["pros", pros], ["services", services]];
                 for (const [name, current] of collections) {
                   const delBatch = db.batch();
                   current.forEach(item => delBatch.delete(db.collection(name).doc(item.id)));
@@ -683,9 +708,11 @@ function AppInner(){
                 (data.appointments||[]).forEach(item => { const { id, ...rest } = item; writeBatch.set(db.collection("appointments").doc(), rest); });
                 (data.clients||[]).forEach(item => { const { id, ...rest } = item; writeBatch.set(db.collection("clients").doc(), rest); });
                 (data.pros||[]).forEach(item => { const { id, ...rest } = item; writeBatch.set(db.collection("pros").doc(), rest); });
+                (data.services||[]).forEach(item => { const { id, ...rest } = item; writeBatch.set(db.collection("services").doc(), rest); });
                 await writeBatch.commit();
               }}
               pros={pros} onAddPro={addPro} onRemovePro={removePro}
+              services={services} onAddService={addService} onRemoveService={removeService}
               onClose={() => setSheet(null)} />
           )}
         </BottomSheet>
@@ -970,14 +997,15 @@ function SectionLabel({ children }){
   return <div style={{ marginTop:18, marginBottom:8, fontSize:11, fontWeight:700, color:T.inkSoft, textTransform:"uppercase", letterSpacing:"0.05em" }}>{children}</div>;
 }
 
-function BackupView({ clients, appointments, onRestore, pros, onAddPro, onRemovePro, onClose }){
+function BackupView({ clients, appointments, onRestore, pros, onAddPro, onRemovePro, services, onAddService, onRemoveService, onClose }){
   const fileRef = useRef(null);
   const [msg, setMsg] = useState(null);
   const [newName, setNewName] = useState("");
   const [newRole, setNewRole] = useState("");
+  const [newService, setNewService] = useState("");
 
   function download(){
-    const payload = { exportedAt: new Date().toISOString(), spa: SPA_NAME, clients, appointments, pros };
+    const payload = { exportedAt: new Date().toISOString(), spa: SPA_NAME, clients, appointments, pros, services };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -1013,6 +1041,11 @@ function BackupView({ clients, appointments, onRestore, pros, onAddPro, onRemove
     onAddPro(newName, newRole);
     setNewName(""); setNewRole("");
   }
+  function submitNewService(){
+    if(!newService.trim()) return;
+    onAddService(newService);
+    setNewService("");
+  }
 
   return (
     <div style={{ padding:"18px 20px 28px" }}>
@@ -1046,6 +1079,28 @@ function BackupView({ clients, appointments, onRestore, pros, onAddPro, onRemove
         El nombre de cada profesional aparece automáticamente en los mensajes de WhatsApp de sus propias citas. Ahora mismo hay una sola: Sonia Lanoza.
       </div>
 
+      <SectionLabel>Tratamientos</SectionLabel>
+      <div style={{ marginBottom:14 }}>
+        {services.map(s => (
+          <div key={s.id} style={{ display:"flex", alignItems:"center", gap:10, padding:"8px 0", borderBottom:`1px solid ${T.border}` }}>
+            <div style={{ flex:1, fontSize:13.5, fontWeight:600 }}>{s.name}</div>
+            <button onClick={() => onRemoveService(s.id)} title="Eliminar" style={{ border:`1px solid ${T.border}`, background:T.surface, borderRadius:8, width:32, height:32, color:"#C1493B" }}>✕</button>
+          </div>
+        ))}
+        {services.length === 0 && <div style={{ color:T.inkSoft, fontSize:12.5, padding:"6px 0" }}>Sincronizando tratamientos…</div>}
+      </div>
+      <div style={{ display:"flex", gap:8, marginBottom:8 }}>
+        <input value={newService} onChange={e => setNewService(e.target.value)} placeholder="Nombre del tratamiento" style={{ ...inputStyle, flex:1, padding:"9px 11px", fontSize:13 }}
+          onKeyDown={e => { if(e.key === "Enter") submitNewService(); }} />
+      </div>
+      <button onClick={submitNewService} disabled={!newService.trim()} style={{ width:"100%", padding:"10px", borderRadius:10, border:`1px dashed ${T.border}`,
+        background:"transparent", color: newService.trim() ? T.olive : T.inkSoft, fontWeight:700, fontSize:13, marginBottom:6 }}>
+        + Agregar tratamiento
+      </button>
+      <div style={{ fontSize:11.5, color:T.inkSoft, marginBottom:8 }}>
+        Estos son los tratamientos que aparecen para elegir al agendar una cita nueva.
+      </div>
+
       <SectionLabel>Copia de seguridad</SectionLabel>
       <div style={{ fontSize:13, color:T.inkSoft, marginBottom:18, lineHeight:1.5 }}>
         Los datos ya se guardan solos en la nube y se sincronizan automáticamente entre el celular y la computadora — no hace falta hacer nada para que se guarden.
@@ -1054,7 +1109,7 @@ function BackupView({ clients, appointments, onRestore, pros, onAddPro, onRemove
 
       <div style={{ border:`1px solid ${T.border}`, borderRadius:12, padding:14, marginBottom:14 }}>
         <div style={{ fontSize:12.5, fontWeight:700, marginBottom:4 }}>Datos actuales en esta sesión</div>
-        <div style={{ fontSize:12.5, color:T.inkSoft }}>{clients.length} clientes · {appointments.length} citas · {pros.length} profesionales</div>
+        <div style={{ fontSize:12.5, color:T.inkSoft }}>{clients.length} clientes · {appointments.length} citas · {pros.length} profesionales · {services.length} tratamientos</div>
       </div>
 
       <button onClick={download} style={{ width:"100%", background:T.ink, color:"#fff", border:"none", borderRadius:11, padding:"13px", fontWeight:700, fontSize:14, marginBottom:10 }}>
@@ -1129,7 +1184,7 @@ function Field({ label, children }){
 }
 const inputStyle = { width:"100%", padding:"11px 12px", borderRadius:10, border:`1px solid ${T.border}`, fontSize:15, background:"#FCFBF8" };
 
-function NewForm({ sheet, setSheet, onSave, onClose, clients, pros }){
+function NewForm({ sheet, setSheet, onSave, onClose, clients, pros, services }){
   const set = (k,v) => setSheet(m => ({ ...m, [k]: v }));
   function onClientChange(name){
     set("client", name);
@@ -1153,7 +1208,7 @@ function NewForm({ sheet, setSheet, onSave, onClose, clients, pros }){
       </Field>
       <Field label="Servicio">
         <select value={sheet.service} onChange={e => set("service", e.target.value)} style={inputStyle}>
-          {SERVICES.map(s => <option key={s}>{s}</option>)}
+          {services.map(s => <option key={s.id}>{s.name}</option>)}
         </select>
       </Field>
       <Field label="Profesional">
