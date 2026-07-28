@@ -216,8 +216,28 @@ function seedClients(today){
 function reminderDate(appt){ return addDays(new Date(appt.date+"T00:00:00"), -1); }
 function formatFullDate(date){ return `${WD_LONG[(date.getDay()+6)%7]} ${date.getDate()} de ${MONTHS[date.getMonth()]}`; }
 function buildReminderMessage(appt, pro){
-  const rd = new Date(appt.date+"T00:00:00");
-  return `Hola ${appt.client.split(" ")[0]}! 🌿 Te escribimos de *${SPA_NAME}* para recordarte tu cita de *${appt.service}* mañana ${formatFullDate(rd)} a las ${timeLabel(mins(appt.start))} con ${pro.name}. ¿Confirmas tu asistencia? Responde *SÍ* para confirmar o avísanos si necesitas reagendar.\n\nCualquier consulta, escríbenos al ${SPA_PHONE_LOCAL}. ¡Te esperamos!`;
+  return `Hola ${appt.client.split(" ")[0]}! Te recordamos tu cita de hoy a las ${timeLabel(mins(appt.start))}. Por favor, confirma tu asistencia. ¡Gracias!`;
+}
+function playChime(){
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    const ctx = new Ctx();
+    const now = ctx.currentTime;
+    [660, 880].forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = freq;
+      const t0 = now + i * 0.18;
+      gain.gain.setValueAtTime(0, t0);
+      gain.gain.linearRampToValueAtTime(0.22, t0 + 0.02);
+      gain.gain.linearRampToValueAtTime(0, t0 + 0.3);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(t0);
+      osc.stop(t0 + 0.32);
+    });
+    setTimeout(() => ctx.close(), 800);
+  } catch(e){}
 }
 function waLink(phone, text){
   const clean = (phone||"").replace(/[^0-9]/g,"");
@@ -377,6 +397,7 @@ function AppInner(){
   const [tab, setTab] = useState("agenda"); // "agenda" | "clientes"
   const [sheet, setSheet] = useState(null); // {mode:'new'|'detail'|'client', ...}
   const timelineRef = useRef(null);
+  const alertedRef = useRef(null);
 
   // Sincronización en tiempo real con Firestore: cualquier cambio hecho desde
   // otro celular/notebook aparece acá solo, sin recargar la página.
@@ -508,10 +529,29 @@ function AppInner(){
   }
 
   const todayCount = appointments.filter(a => a.date === iso(today)).length;
+  const pendingRemindersToday = appointments.filter(a => a.date === iso(today) && a.reminderStatus === "pendiente");
   const birthdaysToday = clients.filter(c => c.birthdate && (() => {
     const b = new Date(c.birthdate+"T00:00:00");
     return b.getMonth() === today.getMonth() && b.getDate() === today.getDate();
   })());
+
+  // Aviso con sonido: suena una vez apenas se abre la app (o cambia la cantidad
+  // de pendientes) si hay citas de hoy con el recordatorio todavía sin enviar.
+  useEffect(() => {
+    if (!synced) return;
+    const key = iso(today) + "-" + pendingRemindersToday.length;
+    if (pendingRemindersToday.length === 0){ alertedRef.current = key; return; }
+    if (alertedRef.current === key) return;
+    alertedRef.current = key;
+    playChime();
+    if ("Notification" in window) {
+      const fire = () => new Notification("Sonia Lanoza Spa", {
+        body: `Tenés ${pendingRemindersToday.length} recordatorio${pendingRemindersToday.length>1?"s":""} de hoy sin enviar por WhatsApp.`,
+      });
+      if (Notification.permission === "granted") fire();
+      else if (Notification.permission !== "denied") Notification.requestPermission().then(p => { if (p === "granted") fire(); });
+    }
+  }, [synced, pendingRemindersToday.length]);
 
   const rows = [];
   for (let m = DAY_START; m < DAY_END; m += SLOT) rows.push(m);
@@ -559,6 +599,22 @@ function AppInner(){
       </div>
 
       <div className="app-content" style={{ display:"flex", flexDirection:"column", flex:1, minHeight:0 }}>
+      {pendingRemindersToday.length > 0 && (
+        <div style={{ background:"#FDECEC", borderBottom:"1px solid #F3D0D0", padding:"10px 16px" }}>
+          <div style={{ fontSize:11.5, fontWeight:700, color:"#B23B3B", textTransform:"uppercase", letterSpacing:"0.04em", marginBottom:6 }}>
+            🔔 Recordatorio{pendingRemindersToday.length > 1 ? "s" : ""} de hoy sin enviar ({pendingRemindersToday.length})
+          </div>
+          {pendingRemindersToday.map(a => (
+            <button key={a.id} onClick={() => setSheet({ mode:"detail", ...a })}
+              style={{ display:"flex", alignItems:"center", gap:8, padding:"4px 0", width:"100%", border:"none", background:"transparent", textAlign:"left" }}>
+              <span style={{ flex:1, fontSize:13.5, fontWeight:600, color:T.ink, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>
+                {a.client} · {timeLabel(mins(a.start))}
+              </span>
+              <span style={{ ...pillBtnStyle, background:T.surface, color:"#B23B3B", border:`1px solid #F3D0D0` }}>Ver</span>
+            </button>
+          ))}
+        </div>
+      )}
       {birthdaysToday.length > 0 && (
         <div style={{ background:"#FBF1DE", borderBottom:"1px solid #EFDDB0", padding:"10px 16px" }}>
           <div style={{ fontSize:11.5, fontWeight:700, color:"#8C6A2A", textTransform:"uppercase", letterSpacing:"0.04em", marginBottom:6 }}>
@@ -1238,7 +1294,6 @@ function NewForm({ sheet, setSheet, onSave, onClose, clients, pros, services }){
 }
 
 function Detail({ appt, pro, onDelete, onToggle, onSendReminder, onConfirmReminder, onClose }){
-  const rd = reminderDate(appt);
   const message = buildReminderMessage(appt, pro);
   const hasPhone = !!(appt.phone && appt.phone.trim());
   const badge = appt.reminderStatus === "confirmada"
@@ -1270,7 +1325,7 @@ function Detail({ appt, pro, onDelete, onToggle, onSendReminder, onConfirmRemind
             <span style={{ fontSize:10.5, fontWeight:700, padding:"3px 9px", borderRadius:999, background:badge.bg, color:badge.fg }}>{badge.text}</span>
           </div>
           <div style={{ fontSize:12.5, color:T.inkSoft, marginBottom:10 }}>
-            Se sugiere enviarlo el {formatFullDate(rd)} (un día antes de la cita).
+            Se sugiere enviarlo el mismo día de la cita ({formatFullDate(new Date(appt.date+"T00:00:00"))}), antes de la hora agendada.
           </div>
           <div style={{ fontSize:12.5, color:T.ink, background:"#FAF8F1", border:`1px solid ${T.border}`, borderRadius:10, padding:"9px 11px", marginBottom:12, lineHeight:1.4 }}>
             {message}
