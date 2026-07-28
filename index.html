@@ -216,7 +216,8 @@ function seedClients(today){
 function reminderDate(appt){ return addDays(new Date(appt.date+"T00:00:00"), -1); }
 function formatFullDate(date){ return `${WD_LONG[(date.getDay()+6)%7]} ${date.getDate()} de ${MONTHS[date.getMonth()]}`; }
 function buildReminderMessage(appt, pro){
-  return `Hola ${appt.client.split(" ")[0]}! Te recordamos tu cita de hoy a las ${timeLabel(mins(appt.start))}. Por favor, confirma tu asistencia. ¡Gracias!`;
+  const d = new Date(appt.date+"T00:00:00");
+  return `Hola ${appt.client.split(" ")[0]}! Te recordamos que estás agendada para el ${formatFullDate(d)} a las ${timeLabel(mins(appt.start))}. Confirma tu asistencia 💚 ¡Gracias!`;
 }
 function playChime(){
   try {
