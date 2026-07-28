@@ -1,0 +1,1324 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
+<title>Sonia Lanoza · Agenda</title>
+<link rel="icon" href="icon-32.png" type="image/png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#51623A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Agenda SL">
+<link rel="icon" href="data:,">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+  :root{
+    --bg:#FAF8F1; --surface:#FFFFFF; --ink:#2E3A22; --ink-soft:#71785F;
+    --border:#E5E1D2; --gold:#C9A66B; --olive:#51623A;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html,body{ margin:0; padding:0; background:var(--bg); color:var(--ink); font-family:'Inter',sans-serif; overscroll-behavior-y: none; }
+  #root{ max-width:480px; margin:0 auto; min-height:100vh; background:var(--bg); position:relative; display:flex; flex-direction:column; }
+  .app-shell{ flex-direction: column; }
+
+  /* Notebook / pantallas anchas: la app se despliega usando más ancho, celular queda igual */
+  @media (min-width: 900px){
+    body{ background:#EDE8D8; }
+    #root{
+      max-width: 1120px; min-height: 92vh; margin: 4vh auto;
+      border-radius: 18px; box-shadow: 0 1px 0 var(--border), 0 24px 60px rgba(46,58,34,0.18);
+      overflow: hidden;
+    }
+    .app-shell{ flex-direction: row !important; height: 92vh !important; }
+    .app-header{
+      flex-direction: column !important; align-items: flex-start !important;
+      width: 220px !important; flex-shrink: 0 !important; height: 100% !important;
+      border-right: 1px solid var(--border) !important; border-bottom: none !important;
+      padding: 20px 16px !important; gap: 10px !important; overflow-x: visible !important;
+    }
+    .app-header button{ justify-content: center !important; }
+    .app-header-social{ margin-left: 0 !important; margin-top: auto !important; flex-wrap: wrap !important; }
+    .app-content{ flex: 1 !important; overflow-y: auto !important; min-width: 0 !important; }
+    .sheet-overlay{ align-items: center !important; }
+    .sheet-panel{ border-radius: 20px !important; max-height: 82vh !important; box-shadow: 0 20px 60px rgba(46,58,34,0.3) !important; }
+  }
+  button{ font-family:inherit; cursor:pointer; }
+  input,select{ font-family:inherit; }
+  ::-webkit-scrollbar{ display:none; }
+
+  /* Botones 3D cuadrados (nav + redes sociales) */
+  .sqbtn{
+    width:46px; height:46px; flex-shrink:0; border:none; border-radius:14px;
+    display:flex; align-items:center; justify-content:center;
+    background: linear-gradient(160deg, #FFFEFB 0%, #F1EAD9 60%, #E9E0CA 100%);
+    box-shadow: inset 0 1px 1px rgba(255,255,255,0.9), inset 0 -3px 4px rgba(120,100,60,0.12),
+      0 3px 6px rgba(46,58,34,0.16), 0 1px 2px rgba(46,58,34,0.12);
+    transition: transform .08s ease;
+  }
+  .sqbtn:active{ transform: translateY(1px) scale(0.97); }
+  .sqbtn.is-active{
+    background: linear-gradient(160deg, #6B7D4C 0%, #51623A 60%, #445430 100%);
+    box-shadow: inset 0 1px 1px rgba(255,255,255,0.25), inset 0 -3px 4px rgba(0,0,0,0.25),
+      0 3px 6px rgba(46,58,34,0.3), 0 1px 2px rgba(46,58,34,0.2);
+  }
+  .sqbtn.sq-fb{ background: linear-gradient(160deg, #5B8DEF 0%, #1877F2 65%, #145DC4 100%); }
+  .sqbtn.sq-ig{ background: linear-gradient(160deg, #F9A34B 0%, #E1306C 45%, #7B3FE4 100%); }
+  .sqbtn.sq-wa{ background: linear-gradient(160deg, #4BD87C 0%, #25D366 60%, #1DAA53 100%); }
+
+  /* Tarjeta 3D rectangular para el logo */
+  .logo3d{
+    height:52px; padding:6px 16px; flex-shrink:0; border:none; border-radius:16px;
+    display:flex; align-items:center; justify-content:center;
+    background: linear-gradient(160deg, #FFFEFB 0%, #F1EAD9 60%, #E9E0CA 100%);
+    box-shadow: inset 0 1px 1px rgba(255,255,255,0.9), inset 0 -3px 4px rgba(120,100,60,0.12),
+      0 3px 6px rgba(46,58,34,0.16), 0 1px 2px rgba(46,58,34,0.12);
+    transition: transform .08s ease;
+  }
+  .logo3d:active{ transform: translateY(1px) scale(0.98); }
+</style>
+</head>
+<body>
+<div id="root" style="padding:24px;font-family:sans-serif;color:#71785F;font-size:14px;">Cargando la agenda…</div>
+<script>
+  window.addEventListener('error', function(e){
+    var r = document.getElementById('root');
+    if (r) r.textContent = 'No se pudo cargar: ' + (e.message || 'error desconocido');
+  });
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function(){
+      navigator.serviceWorker.register('sw.js').catch(function(){});
+    });
+  }
+</script>
+
+<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyA7Zwhw5WlP3AY5rk0gQ0HeVTs6eKAW7FY",
+    authDomain: "sonia-lanoza-agenda.firebaseapp.com",
+    projectId: "sonia-lanoza-agenda",
+    storageBucket: "sonia-lanoza-agenda.firebasestorage.app",
+    messagingSenderId: "203006403226",
+    appId: "1:203006403226:web:98f1de91a4cabde42ab523"
+  };
+  firebase.initializeApp(firebaseConfig);
+  window.db = firebase.firestore();
+</script>
+
+<script type="text/babel" data-presets="react">
+const { useState, useMemo, useEffect, useRef } = React;
+
+/* ---------------- tokens & data ---------------- */
+const T = {
+  bg: "#FAF8F1", surface: "#FFFFFF", ink: "#2E3A22", inkSoft: "#71785F",
+  border: "#E5E1D2", gold: "#C9A66B", olive: "#51623A",
+};
+const LOGO_SRC = "data:image/png;base64,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";
+const SPA_NAME = "Sonia Lanoza Spa & Belleza";
+const SPA_PHONE_LOCAL = "0986 371827";
+const SPA_PHONE_INTL = "+595 986 371827";
+
+// Cambia estos dos links por las páginas reales del spa.
+const FACEBOOK_URL = "https://www.facebook.com/share/1Bh7jebf2Q/?mibextid=wwXIfr";
+const INSTAGRAM_URL = "https://www.instagram.com/spasonialanoza?igsh=Z2owMWIwYzNobTN6&utm_source=qr";
+const WHATSAPP_URL = "https://wa.me/595986371827";
+
+const PRO_COLOR_PALETTE = ["#51623A", "#B2717A", "#C9A66B", "#6E8398", "#8A6FA8", "#A97C50", "#5E8C7A", "#B0533C"];
+function seedPros(){
+  return [
+    { id:"p1", name:"Sonia Lanoza", role:"Spa & Belleza", color:"#51623A", initials:"SL" },
+  ];
+}
+function initialsOf(name){
+  return name.trim().split(/\s+/).slice(0,2).map(w => w[0]).join("").toUpperCase();
+}
+const SERVICES = ["Masaje relajante", "Limpieza facial", "Manicure spa", "Drenaje linfático", "Exfoliación corporal", "Peeling facial", "Ritual de spa"];
+const CLINICAL_FIELDS = [
+  { key:"alergica", label:"Alérgica" },
+  { key:"diabetes", label:"Diabetes" },
+  { key:"hipertension", label:"Hipertensión" },
+  { key:"antidepresivo", label:"Antidepresivo" },
+  { key:"embarazo", label:"Embarazo" },
+  { key:"lactancia", label:"Lactancia" },
+  { key:"lupus", label:"Lupus" },
+  { key:"implantes", label:"Implantes" },
+  { key:"hemofilia", label:"Hemofilia" },
+];
+function blankClinical(){
+  const c = {}; CLINICAL_FIELDS.forEach(f => c[f.key] = ""); return c;
+}
+function blankTreatmentPlan(name){
+  return { id:"t"+Date.now()+Math.random().toString(36).slice(2,6), name: name||"", fechaInicio:"", sessions: Array(10).fill(false) };
+}
+function fechaValidez(fechaInicioISO){
+  if(!fechaInicioISO) return null;
+  const d = new Date(fechaInicioISO+"T00:00:00");
+  d.setMonth(d.getMonth()+1);
+  d.setDate(d.getDate()+15);
+  return d;
+}
+
+function clientKey(name, phone){ return ((phone||"").replace(/[^0-9]/g,"")) || name.trim().toLowerCase(); }
+function calcAge(birthdate){
+  if(!birthdate) return null;
+  const b = new Date(birthdate+"T00:00:00"), now = new Date();
+  let age = now.getFullYear() - b.getFullYear();
+  const m = now.getMonth() - b.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < b.getDate())) age--;
+  return age;
+}
+function nextBirthday(birthdate){
+  if(!birthdate) return null;
+  const b = new Date(birthdate+"T00:00:00"), now = new Date();
+  let next = new Date(now.getFullYear(), b.getMonth(), b.getDate());
+  next.setHours(0,0,0,0);
+  const today0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (next < today0) next = new Date(now.getFullYear()+1, b.getMonth(), b.getDate());
+  return next;
+}
+function daysUntil(date){
+  const now = new Date(); const today0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.round((date - today0) / 86400000);
+}
+function buildBirthdayMessage(client){
+  return `¡Feliz cumpleaños, ${client.name.split(" ")[0]}! 🎂🌿 Todo el equipo de *${SPA_NAME}* te desea un día hermoso. Como regalo, tienes un descuento especial esperándote en tu próxima visita. ¡Nos encantaría verte pronto! Cualquier consulta, escríbenos al ${SPA_PHONE_LOCAL}.`;
+}
+
+const DAY_START = 8 * 60, DAY_END = 20 * 60, SLOT = 30, ROW_H = 46;
+
+function pad(n){ return String(n).padStart(2,"0"); }
+function iso(d){ return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+function addDays(d,n){ const r=new Date(d); r.setDate(r.getDate()+n); return r; }
+function startOfWeek(d){ const r=new Date(d); const day=(r.getDay()+6)%7; return addDays(r,-day); }
+function sameDay(a,b){ return iso(a)===iso(b); }
+function mins(hhmm){ const [h,m]=hhmm.split(":").map(Number); return h*60+m; }
+function timeLabel(m){ const h=Math.floor(m/60), mm=m%60, ap=h<12?"a.m.":"p.m."; const h12=h%12===0?12:h%12; return `${h12}:${pad(mm)} ${ap}`; }
+
+const WD_SHORT = ["lun","mar","mié","jue","vie","sáb","dom"];
+const WD_LONG = ["lunes","martes","miércoles","jueves","viernes","sábado","domingo"];
+const MONTHS = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+
+function seed(today){
+  return [];
+}
+
+function seedClients(today){
+  return [];
+}
+
+function reminderDate(appt){ return addDays(new Date(appt.date+"T00:00:00"), -1); }
+function formatFullDate(date){ return `${WD_LONG[(date.getDay()+6)%7]} ${date.getDate()} de ${MONTHS[date.getMonth()]}`; }
+function buildReminderMessage(appt, pro){
+  const rd = new Date(appt.date+"T00:00:00");
+  return `Hola ${appt.client.split(" ")[0]}! 🌿 Te escribimos de *${SPA_NAME}* para recordarte tu cita de *${appt.service}* mañana ${formatFullDate(rd)} a las ${timeLabel(mins(appt.start))} con ${pro.name}. ¿Confirmas tu asistencia? Responde *SÍ* para confirmar o avísanos si necesitas reagendar.\n\nCualquier consulta, escríbenos al ${SPA_PHONE_LOCAL}. ¡Te esperamos!`;
+}
+function waLink(phone, text){
+  const clean = (phone||"").replace(/[^0-9]/g,"");
+  return `https://wa.me/${clean}?text=${encodeURIComponent(text)}`;
+}
+
+function printClient(client, history, proOf){
+  const age = calcAge(client.birthdate);
+  const win = window.open("", "_blank", "width=850,height=1000");
+  if (!win) { alert("El navegador bloqueó la ventana de impresión. Habilita las ventanas emergentes para este sitio."); return; }
+  const clinical = client.clinical || blankClinical();
+  const plans = (client.treatmentPlans && client.treatmentPlans.length > 0) ? client.treatmentPlans : [blankTreatmentPlan("")];
+  const cols = plans.slice(0, 6);
+  while (cols.length < 6) cols.push(blankTreatmentPlan(""));
+
+  const clinicalRows = CLINICAL_FIELDS.map(f => `
+    <tr><td class="label">${f.label}:</td><td>${(clinical[f.key]||"").replace(/</g,"&lt;")}</td></tr>`).join("");
+
+  const treatmentHeaderCells = cols.map(p => `<th colspan="2">${(p.name||"").replace(/</g,"&lt;")}</th>`).join("");
+  const sessionRows = Array.from({length:10}).map((_, idx) => {
+    const cells = cols.map(p => `<td class="num">${idx+1}</td><td class="chk">${p.sessions && p.sessions[idx] ? "✓" : ""}</td>`).join("");
+    return `<tr>${cells}</tr>`;
+  }).join("");
+  const validezLines = cols.filter(p => p.name || p.fechaInicio).map(p => {
+    const v = fechaValidez(p.fechaInicio);
+    return `<div class="validez-line"><strong>${(p.name||"Tratamiento").replace(/</g,"&lt;")}:</strong> Inicio ${p.fechaInicio ? formatFullDate(new Date(p.fechaInicio+"T00:00:00")) : "—"} · Válido hasta ${v ? formatFullDate(v) : "—"}</div>`;
+  }).join("");
+
+  win.document.write(`
+    <!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+    <title>Ficha de ${client.name}</title>
+    <style>
+      @page { margin: 14mm 12mm; }
+      * { box-sizing:border-box; }
+      body{ font-family: Arial, Helvetica, sans-serif; color:#1a1a1a; margin:0; }
+      .toolbar{ position:sticky; top:0; display:flex; align-items:center; justify-content:space-between; gap:10px;
+        background:#51623A; color:#fff; padding:12px 20px; font-family:'Inter',sans-serif; }
+      .toolbar span{ font-size:13px; opacity:0.9; }
+      .toolbar button{ font-family:inherit; font-size:13px; font-weight:700; border:none; border-radius:8px; padding:9px 16px; cursor:pointer; }
+      .btn-print{ background:#fff; color:#51623A; }
+      .btn-close{ background:rgba(255,255,255,0.2); color:#fff; }
+      @media print { .toolbar{ display:none; } }
+
+      .sheet{ padding: 20px 26px 30px; max-width:900px; margin:0 auto; }
+      .header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+      .header img{ height:70px; }
+      .titlebar{ background:#B3B3B3; text-align:center; font-weight:bold; font-size:16px; padding:6px 0; border:1px solid #000; }
+      table.form{ width:100%; border-collapse:collapse; margin-bottom:0; }
+      table.form td{ border:1px solid #000; padding:5px 8px; font-size:12.5px; vertical-align:middle; }
+      table.form td.label{ width:190px; white-space:nowrap; }
+      .sectionbar{ text-align:center; font-weight:bold; font-size:12.5px; padding:5px 0; border:1px solid #000; border-top:none; background:#fff; }
+      table.tx{ width:100%; border-collapse:collapse; margin-top:0; }
+      table.tx th{ border:1px solid #000; font-size:11px; padding:4px; background:#F2F2F2; }
+      table.tx td{ border:1px solid #000; font-size:11px; padding:4px; text-align:center; }
+      table.tx td.num{ width:22px; color:#555; }
+      table.tx td.chk{ font-weight:bold; color:#51623A; }
+      .validez{ margin-top:10px; font-size:11.5px; }
+      .validez-line{ margin-bottom:3px; }
+      .banner{ margin-top:14px; background:#9ACD32; color:#1a1a1a; text-align:center; font-style:italic; font-weight:bold; font-size:11px; padding:8px 10px; }
+    </style></head><body>
+      <div class="toolbar">
+        <span>Vista previa · así se vería impresa</span>
+        <div style="display:flex; gap:8px;">
+          <button class="btn-close" onclick="window.close()">Cerrar</button>
+          <button class="btn-print" onclick="window.print()">🖨 Imprimir</button>
+        </div>
+      </div>
+      <div class="sheet">
+        <div class="header">
+          <img src="${LOGO_SRC}" alt="${SPA_NAME}" />
+        </div>
+        <div class="titlebar">FICHA PERSONAL</div>
+        <table class="form">
+          <tr><td class="label">Nombre y Apellido:</td><td>${client.name || ""}</td></tr>
+          <tr><td class="label">Edad:</td><td>${age !== null ? age : ""}</td></tr>
+          <tr><td class="label">Fecha de Nacimiento:</td><td>${client.birthdate ? formatFullDate(new Date(client.birthdate+"T00:00:00")) : ""}</td></tr>
+          <tr><td class="label">Teléfono:</td><td>${client.phone || ""}</td></tr>
+          <tr><td class="label">Tratamientos:</td><td>${(client.tratamientos||"").replace(/</g,"&lt;")}</td></tr>
+        </table>
+        <div class="sectionbar">DATOS CLÍNICOS</div>
+        <table class="form">
+          ${clinicalRows}
+        </table>
+        <div class="sectionbar" style="margin-top:10px;">Tratamientos</div>
+        <table class="tx">
+          <tr>${treatmentHeaderCells}</tr>
+          ${sessionRows}
+        </table>
+        <div class="validez">
+          ${validezLines || `<div class="validez-line">Fecha de inicio: ______________ &nbsp;&nbsp;&nbsp; Fecha de validez: ______________</div>`}
+        </div>
+        <div class="banner">TODOS LOS TRATAMIENTOS TIENEN UN MES Y QUINCE DÍAS DE VALIDEZ DESDE LA FECHA DE INICIO DE DICHO TRATAMIENTO</div>
+      </div>
+    </body></html>`);
+  win.document.close();
+  win.focus();
+}
+
+/* ---------------- app ---------------- */
+/* ---------------- acceso con contraseña ---------------- */
+// Cambia esta contraseña por la que quieras usar.
+const APP_PASSWORD = "Lanoza2026";
+
+function App(){
+  const [unlocked, setUnlocked] = useState(() => {
+    try { return sessionStorage.getItem("sl_unlocked") === "1"; } catch(e){ return false; }
+  });
+  const [pwd, setPwd] = useState("");
+  const [error, setError] = useState(false);
+
+  function tryEnter(e){
+    if (e) e.preventDefault();
+    if (pwd === APP_PASSWORD){
+      setUnlocked(true);
+      setError(false);
+      try { sessionStorage.setItem("sl_unlocked", "1"); } catch(e){}
+    } else {
+      setError(true);
+    }
+  }
+
+  if (!unlocked){
+    return (
+      <div style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", padding:24, background:T.bg }}>
+        <form onSubmit={tryEnter} style={{ width:"100%", maxWidth:340, background:T.surface, border:`1px solid ${T.border}`, borderRadius:18, padding:"32px 28px", boxShadow:"0 10px 40px rgba(46,58,34,0.12)", textAlign:"center" }}>
+          <img src={LOGO_SRC} alt={SPA_NAME} style={{ width:170, height:"auto", margin:"0 auto 22px" }} />
+          <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:18, fontWeight:700, marginBottom:16, color:T.ink }}>Ingresá la contraseña</div>
+          <input
+            type="password"
+            autoFocus
+            value={pwd}
+            onChange={e => { setPwd(e.target.value); setError(false); }}
+            placeholder="Contraseña"
+            style={{ width:"100%", padding:"12px 14px", borderRadius:10, border:`1px solid ${error ? "#C1493B" : T.border}`, fontSize:15, textAlign:"center", marginBottom:12, background:"#FCFBF8" }}
+          />
+          {error && <div style={{ color:"#C1493B", fontSize:12.5, marginBottom:12 }}>Contraseña incorrecta, probá de nuevo.</div>}
+          <button type="submit" style={{ width:"100%", background:T.ink, color:"#fff", border:"none", borderRadius:10, padding:"12px", fontWeight:700, fontSize:14.5 }}>
+            Entrar
+          </button>
+        </form>
+      </div>
+    );
+  }
+
+  return <AppInner />;
+}
+
+function AppInner(){
+  const today = useMemo(() => new Date(), []);
+  const [current, setCurrent] = useState(today);
+  const [proFilter, setProFilter] = useState("all"); // "all" or a pro id
+  const [appointments, setAppointments] = useState([]);
+  const [pros, setPros] = useState([]);
+  const [clients, setClients] = useState([]);
+  const [services, setServices] = useState([]);
+  const [synced, setSynced] = useState(false);
+  const [tab, setTab] = useState("agenda"); // "agenda" | "clientes"
+  const [sheet, setSheet] = useState(null); // {mode:'new'|'detail'|'client', ...}
+  const timelineRef = useRef(null);
+
+  // Sincronización en tiempo real con Firestore: cualquier cambio hecho desde
+  // otro celular/notebook aparece acá solo, sin recargar la página.
+  useEffect(() => {
+    const unsubApts = db.collection("appointments").onSnapshot(snap => {
+      setAppointments(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+    const unsubClients = db.collection("clients").onSnapshot(snap => {
+      setClients(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+    const unsubPros = db.collection("pros").onSnapshot(async snap => {
+      if (snap.empty) {
+        const metaRef = db.collection("meta").doc("init");
+        const metaDoc = await metaRef.get();
+        if (!metaDoc.exists) {
+          await metaRef.set({ seededAt: new Date().toISOString() });
+          const batch = db.batch();
+          seedPros().forEach(p => { const { id, ...rest } = p; batch.set(db.collection("pros").doc(), rest); });
+          await batch.commit();
+        }
+      } else {
+        setPros(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      }
+      setSynced(true);
+    });
+    const unsubServices = db.collection("services").onSnapshot(async snap => {
+      if (snap.empty) {
+        const metaRef = db.collection("meta").doc("initServices");
+        const metaDoc = await metaRef.get();
+        if (!metaDoc.exists) {
+          await metaRef.set({ seededAt: new Date().toISOString() });
+          const batch = db.batch();
+          SERVICES.forEach(name => { batch.set(db.collection("services").doc(), { name }); });
+          await batch.commit();
+        }
+      } else {
+        setServices(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      }
+    });
+    return () => { unsubApts(); unsubClients(); unsubPros(); unsubServices(); };
+  }, []);
+
+  useEffect(() => {
+    if (timelineRef.current) timelineRef.current.scrollTop = Math.max(0, (9*60 - DAY_START)/SLOT*ROW_H - 60);
+  }, [current, tab]);
+
+  const weekDates = useMemo(() => Array.from({length:7},(_,i)=>addDays(startOfWeek(current), i)), [current]);
+  const d = iso(current);
+
+  const dayAppts = useMemo(() => {
+    return appointments
+      .filter(a => a.date === d && (proFilter === "all" || a.profId === proFilter))
+      .sort((x,y) => mins(x.start) - mins(y.start));
+  }, [appointments, d, proFilter]);
+
+  function proOf(id){ return pros.find(p => p.id === id); }
+  function addPro(name, role){
+    const nm = name.trim();
+    if(!nm) return;
+    const usedColors = pros.map(p => p.color);
+    const color = PRO_COLOR_PALETTE.find(c => !usedColors.includes(c)) || PRO_COLOR_PALETTE[pros.length % PRO_COLOR_PALETTE.length];
+    db.collection("pros").add({ name:nm, role: role.trim() || "Profesional", color, initials: initialsOf(nm) });
+  }
+  function removePro(id){
+    if (pros.length <= 1){ alert("Tiene que quedar al menos una profesional cargada."); return; }
+    const inUse = appointments.some(a => a.profId === id);
+    if (inUse){ alert("Esta profesional tiene citas agendadas. Reasigna o elimina esas citas antes de borrarla."); return; }
+    db.collection("pros").doc(id).delete();
+    if (proFilter === id) setProFilter("all");
+  }
+  function addService(name){
+    const nm = name.trim();
+    if(!nm) return;
+    if (services.some(s => s.name.toLowerCase() === nm.toLowerCase())){ alert("Ese tratamiento ya está cargado."); return; }
+    db.collection("services").add({ name: nm });
+  }
+  function removeService(id){
+    if (services.length <= 1){ alert("Tiene que quedar al menos un tratamiento cargado."); return; }
+    db.collection("services").doc(id).delete();
+  }
+  function clientOf(id){ return clients.find(c => c.id === id); }
+  function apptsForClient(client){
+    const key = clientKey(client.name, client.phone);
+    return appointments.filter(a => clientKey(a.client, a.phone) === key).sort((x,y) => (y.date+y.start).localeCompare(x.date+x.start));
+  }
+
+  function upsertClient(name, phone){
+    const key = clientKey(name, phone);
+    const found = clients.find(c => clientKey(c.name, c.phone) === key);
+    if (found) return found;
+    db.collection("clients").add({ name, phone, birthdate:"", tratamientos:"", notes:"", clinical: blankClinical(), treatmentPlans: [] });
+    return null;
+  }
+
+  function openNew(prefillStart){
+    setSheet({ mode:"new", profId: proFilter === "all" ? pros[0].id : proFilter, date:d, start: prefillStart || "09:00", duration:30, client:"", phone:"", service:SERVICES[0] });
+  }
+  function saveNew(){
+    if(!sheet.client.trim()) return;
+    const name = sheet.client.trim(), phone = sheet.phone.trim();
+    upsertClient(name, phone);
+    db.collection("appointments").add({ profId:sheet.profId, date:sheet.date, start:sheet.start, duration:Number(sheet.duration), client:name, phone, service:sheet.service, status:"pendiente", reminderStatus:"pendiente" });
+    setSheet(null);
+  }
+  function removeAppt(id){ db.collection("appointments").doc(id).delete(); setSheet(null); }
+  function toggleStatus(id){
+    const appt = appointments.find(a => a.id === id);
+    if (!appt) return;
+    const status = appt.status === "confirmada" ? "pendiente" : "confirmada";
+    db.collection("appointments").doc(id).update({ status });
+    setSheet(s => s && s.id===id ? {...s, status} : s);
+  }
+  function sendReminder(id){
+    db.collection("appointments").doc(id).update({ reminderStatus:"enviado" });
+    setSheet(s => s && s.id===id ? {...s, reminderStatus:"enviado"} : s);
+  }
+  function confirmReminder(id){
+    db.collection("appointments").doc(id).update({ reminderStatus:"confirmada", status:"confirmada" });
+    setSheet(s => s && s.id===id ? {...s, reminderStatus:"confirmada", status:"confirmada"} : s);
+  }
+  function updateClient(id, patch){
+    db.collection("clients").doc(id).update(patch);
+    setSheet(s => s && s.mode==="client" && s.id===id ? {...s, ...patch} : s);
+  }
+  function markBirthdaySent(id){ updateClient(id, { birthdaySentYear: today.getFullYear() }); }
+  function deleteClient(id){
+    db.collection("clients").doc(id).delete();
+    setSheet(null);
+  }
+
+  const todayCount = appointments.filter(a => a.date === iso(today)).length;
+  const birthdaysToday = clients.filter(c => c.birthdate && (() => {
+    const b = new Date(c.birthdate+"T00:00:00");
+    return b.getMonth() === today.getMonth() && b.getDate() === today.getDate();
+  })());
+
+  const rows = [];
+  for (let m = DAY_START; m < DAY_END; m += SLOT) rows.push(m);
+
+  if (!synced) {
+    return (
+      <div style={{ minHeight:"100vh", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:14, background:T.bg }}>
+        <img src={LOGO_SRC} alt={SPA_NAME} style={{ width:140, height:"auto" }} />
+        <div style={{ color:T.inkSoft, fontSize:13.5 }}>Sincronizando…</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="app-shell" style={{ display:"flex", height:"100vh" }}>
+      {/* header */}
+      {/* header — logo + navegación + configuración + redes, todo en botones cuadrados 3D */}
+      <div className="app-header" style={{ padding:"10px 12px", display:"flex", alignItems:"center", gap:8, borderBottom:`1px solid ${T.border}`, background:T.surface, overflowX:"auto" }}>
+        <button onClick={() => { setSheet(null); setTab("agenda"); }} title="Ir al inicio" className="logo3d" style={{ marginRight:2 }}>
+          <img src={LOGO_SRC} alt="Sonia Lanoza" style={{ height:40, width:"auto" }} />
+        </button>
+
+        <div style={{ position:"relative" }}>
+          <button onClick={() => { setSheet(null); setTab("agenda"); }} title="Agendamiento" className={"sqbtn" + ((!sheet && tab==="agenda") ? " is-active" : "")}>
+            <IconCalendar color={(!sheet && tab==="agenda") ? "#fff" : T.olive} />
+          </button>
+          {todayCount > 0 && (
+            <span style={{ position:"absolute", top:-4, right:-4, background:T.gold, color:"#fff", fontSize:10, fontWeight:700, borderRadius:999, minWidth:16, height:16, display:"flex", alignItems:"center", justifyContent:"center", padding:"0 3px", boxShadow:"0 1px 2px rgba(0,0,0,0.25)" }}>{todayCount}</span>
+          )}
+        </div>
+
+        <button onClick={() => { setSheet(null); setTab("clientes"); }} title="Clientes" className={"sqbtn" + ((!sheet && tab==="clientes") ? " is-active" : "")}>
+          <IconFolder color={(!sheet && tab==="clientes") ? "#fff" : T.olive} />
+        </button>
+
+        <button onClick={() => setSheet({ mode:"backup" })} title="Copia de seguridad" className="sqbtn is-active">
+          <IconGear color="#fff" />
+        </button>
+
+        <div className="app-header-social" style={{ marginLeft:"auto", display:"flex", gap:8 }}>
+          <a href={FACEBOOK_URL} target="_blank" rel="noreferrer" title="Facebook" className="sqbtn sq-fb" style={socialBtn}><IconFacebook /></a>
+          <a href={INSTAGRAM_URL} target="_blank" rel="noreferrer" title="Instagram" className="sqbtn sq-ig" style={socialBtn}><IconInstagram /></a>
+          <a href={WHATSAPP_URL} target="_blank" rel="noreferrer" title="WhatsApp" className="sqbtn sq-wa" style={socialBtn}><IconWhatsapp /></a>
+        </div>
+      </div>
+
+      <div className="app-content" style={{ display:"flex", flexDirection:"column", flex:1, minHeight:0 }}>
+      {birthdaysToday.length > 0 && (
+        <div style={{ background:"#FBF1DE", borderBottom:"1px solid #EFDDB0", padding:"10px 16px" }}>
+          <div style={{ fontSize:11.5, fontWeight:700, color:"#8C6A2A", textTransform:"uppercase", letterSpacing:"0.04em", marginBottom:6 }}>
+            🎂 Hoy cumple{birthdaysToday.length > 1 ? "n" : ""} años
+          </div>
+          {birthdaysToday.map(c => (
+            <div key={c.id} style={{ display:"flex", alignItems:"center", gap:8, padding:"4px 0" }}>
+              <span style={{ flex:1, fontSize:13.5, fontWeight:600, color:T.ink, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{c.name}</span>
+              {c.phone && (
+                <React.Fragment>
+                  <a href={`tel:${c.phone.replace(/[^0-9+]/g,"")}`} style={{ ...pillBtnStyle, background:T.surface, color:T.ink }}>📞 Llamar</a>
+                  <a href={waLink(c.phone, buildBirthdayMessage(c))} target="_blank" rel="noreferrer" style={{ ...pillBtnStyle, background:"#25D366", color:"#fff" }}>WhatsApp</a>
+                </React.Fragment>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {tab === "agenda" ? (
+        <React.Fragment>
+          {/* week strip */}
+          <div style={{ display:"flex", padding:"10px 10px 6px", gap:6, background:T.surface, borderBottom:`1px solid ${T.border}` }}>
+            {weekDates.map((date,i) => {
+              const sel = sameDay(date, current);
+              const isToday = sameDay(date, today);
+              return (
+                <button key={i} onClick={() => setCurrent(date)}
+                  style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:2, padding:"8px 0", borderRadius:12, border:"none",
+                    background: sel ? T.ink : (isToday ? "#F0ECDC" : "transparent") }}>
+                  <span style={{ fontSize:10, fontWeight:700, textTransform:"uppercase", color: sel ? "#fff" : T.inkSoft }}>{WD_SHORT[i]}</span>
+                  <span style={{ fontSize:15, fontWeight:700, color: sel ? "#fff" : T.ink }}>{date.getDate()}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* month/day label + nav */}
+          <div style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 16px", background:T.surface, borderBottom:`1px solid ${T.border}` }}>
+            <button onClick={() => setCurrent(a => addDays(a,-1))} style={navBtn}>‹</button>
+            <div style={{ flex:1, textAlign:"center", fontFamily:"'Cormorant Garamond',serif", fontSize:19, fontWeight:700, textTransform:"capitalize" }}>
+              {WD_LONG[(current.getDay()+6)%7]} {current.getDate()} de {MONTHS[current.getMonth()]}
+            </div>
+            <button onClick={() => setCurrent(a => addDays(a,1))} style={navBtn}>›</button>
+          </div>
+
+          {/* professional chips */}
+          {pros.length > 1 && (
+            <div style={{ display:"flex", gap:8, padding:"10px 16px", overflowX:"auto", background:T.surface, borderBottom:`1px solid ${T.border}` }}>
+              <Chip active={proFilter==="all"} onClick={() => setProFilter("all")} label="Todas" />
+              {pros.map(p => (
+                <Chip key={p.id} active={proFilter===p.id} onClick={() => setProFilter(p.id)} label={p.name.split(" ")[0]} dot={p.color} />
+              ))}
+            </div>
+          )}
+
+          {/* timeline */}
+          <div ref={timelineRef} style={{ flex:1, overflowY:"auto", position:"relative", padding:"6px 0 90px" }}>
+            {rows.map(m => (
+              <div key={m} onClick={() => openNew(`${pad(Math.floor(m/60))}:${pad(m%60)}`)}
+                style={{ display:"flex", minHeight:ROW_H, borderTop: m%60===0 ? `1px solid ${T.border}` : `1px dashed #EFEAE0` }}>
+                <div style={{ width:52, flexShrink:0, paddingTop:2, textAlign:"right", paddingRight:8 }}>
+                  {m%60===0 && <span style={{ fontSize:11, color:T.inkSoft, fontWeight:600 }}>{pad(Math.floor(m/60))}:00</span>}
+                </div>
+                <div style={{ flex:1, borderLeft:`1px solid ${T.border}` }} />
+              </div>
+            ))}
+
+            {dayAppts.map(a => {
+              const pro = proOf(a.profId);
+              const top = ((mins(a.start) - DAY_START) / SLOT) * ROW_H;
+              const height = Math.max((a.duration/SLOT)*ROW_H - 4, 34);
+              const rDot = a.reminderStatus === "confirmada" ? "#51623A" : a.reminderStatus === "enviado" ? T.gold : "#D8D2C0";
+              return (
+                <button key={a.id} onClick={(e) => { e.stopPropagation(); setSheet({ mode:"detail", ...a }); }}
+                  style={{ position:"absolute", left:60, right:16, top, height, textAlign:"left",
+                    background: pro.color+"1E", borderLeft:`3px solid ${pro.color}`, borderRadius:9, padding:"6px 10px",
+                    boxShadow:"0 1px 3px rgba(46,58,34,0.1)", border:"none", overflow:"hidden" }}>
+                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", gap:6 }}>
+                    <span style={{ display:"flex", alignItems:"center", gap:6, fontSize:13.5, fontWeight:700, color:T.ink, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>
+                      <span title={"Recordatorio: "+a.reminderStatus} style={{ width:7, height:7, borderRadius:"50%", background:rDot, flexShrink:0 }} />
+                      {a.client}
+                    </span>
+                    <span style={{ fontSize:10.5, color:T.inkSoft, flexShrink:0 }}>{timeLabel(mins(a.start))}</span>
+                  </div>
+                  {height > 40 && <div style={{ fontSize:11.5, color:T.inkSoft, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{pro.initials} · {a.service}</div>}
+                </button>
+              );
+            })}
+
+            {dayAppts.length === 0 && (
+              <div style={{ position:"absolute", top:120, left:0, right:0, textAlign:"center", color:T.inkSoft, fontSize:13.5, padding:"0 40px" }}>
+                Sin citas para este día. Toca un horario para agendar.
+              </div>
+            )}
+          </div>
+
+          {/* FAB */}
+          <button onClick={() => openNew()} style={{ position:"absolute", right:18, bottom:22, width:56, height:56, borderRadius:"50%",
+            background:T.ink, color:"#fff", border:"none", fontSize:26, boxShadow:"0 8px 20px rgba(46,58,34,0.35)", display:"flex", alignItems:"center", justifyContent:"center" }}>
+            +
+          </button>
+        </React.Fragment>
+      ) : (
+        <ClientesView
+          clients={clients}
+          apptsForClient={apptsForClient}
+          onOpen={(c) => setSheet({ mode:"client", ...c })}
+          onNew={() => setSheet({ mode:"newClient", name:"", phone:"", birthdate:"", tratamientos:"", notes:"" })}
+        />
+      )}
+      </div>
+
+      {sheet && (
+        <BottomSheet onClose={() => setSheet(null)}>
+          {sheet.mode === "new" && (
+            <NewForm sheet={sheet} setSheet={setSheet} onSave={saveNew} onClose={() => setSheet(null)} clients={clients} pros={pros} services={services} />
+          )}
+          {sheet.mode === "detail" && (
+            <Detail appt={sheet} pro={proOf(sheet.profId)} onDelete={() => removeAppt(sheet.id)} onToggle={() => toggleStatus(sheet.id)}
+              onSendReminder={() => sendReminder(sheet.id)} onConfirmReminder={() => confirmReminder(sheet.id)} onClose={() => setSheet(null)} />
+          )}
+          {sheet.mode === "client" && (
+            <ClientDetail client={sheet} history={apptsForClient(sheet)} proOf={proOf}
+              onUpdate={(patch) => updateClient(sheet.id, patch)} onSendBirthday={() => markBirthdaySent(sheet.id)}
+              onDelete={() => deleteClient(sheet.id)} onClose={() => setSheet(null)} />
+          )}
+          {sheet.mode === "newClient" && (
+            <NewClientForm sheet={sheet} setSheet={setSheet}
+              onSave={() => {
+                if(!sheet.name.trim()) return;
+                db.collection("clients").add({ name:sheet.name.trim(), phone:sheet.phone.trim(), birthdate:sheet.birthdate, tratamientos:sheet.tratamientos, notes:sheet.notes, clinical: blankClinical(), treatmentPlans: [] });
+                setSheet(null);
+              }}
+              onClose={() => setSheet(null)} />
+          )}
+          {sheet.mode === "backup" && (
+            <BackupView clients={clients} appointments={appointments}
+              onRestore={async (data) => {
+                const collections = [["appointments", appointments], ["clients", clients], ["pros", pros], ["services", services]];
+                for (const [name, current] of collections) {
+                  const delBatch = db.batch();
+                  current.forEach(item => delBatch.delete(db.collection(name).doc(item.id)));
+                  await delBatch.commit();
+                }
+                const writeBatch = db.batch();
+                (data.appointments||[]).forEach(item => { const { id, ...rest } = item; writeBatch.set(db.collection("appointments").doc(), rest); });
+                (data.clients||[]).forEach(item => { const { id, ...rest } = item; writeBatch.set(db.collection("clients").doc(), rest); });
+                (data.pros||[]).forEach(item => { const { id, ...rest } = item; writeBatch.set(db.collection("pros").doc(), rest); });
+                (data.services||[]).forEach(item => { const { id, ...rest } = item; writeBatch.set(db.collection("services").doc(), rest); });
+                await writeBatch.commit();
+              }}
+              pros={pros} onAddPro={addPro} onRemovePro={removePro}
+              services={services} onAddService={addService} onRemoveService={removeService}
+              onClose={() => setSheet(null)} />
+          )}
+        </BottomSheet>
+      )}
+    </div>
+  );
+}
+
+const navBtn = { width:32, height:32, borderRadius:9, border:`1px solid ${T.border}`, background:T.surface, fontSize:18, color:T.ink, display:"flex", alignItems:"center", justifyContent:"center" };
+function IconCalendar({ color }){
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+      <rect x="3" y="5" width="18" height="16" rx="3" stroke={color} strokeWidth="1.8"/>
+      <path d="M3 9.5H21" stroke={color} strokeWidth="1.8"/>
+      <path d="M8 3V6.5M16 3V6.5" stroke={color} strokeWidth="1.8" strokeLinecap="round"/>
+      <rect x="6.5" y="12" width="3.2" height="3.2" rx="0.8" fill={color}/>
+      <rect x="14.3" y="12" width="3.2" height="3.2" rx="0.8" fill={color} opacity="0.45"/>
+    </svg>
+  );
+}
+function IconFolder({ color }){
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+      <path d="M3 7.5C3 6.4 3.9 5.5 5 5.5H9.5L11.5 8H19C20.1 8 21 8.9 21 10V17C21 18.1 20.1 19 19 19H5C3.9 19 3 18.1 3 17V7.5Z"
+        stroke={color} strokeWidth="1.8" strokeLinejoin="round"/>
+      <circle cx="9" cy="13.5" r="1.6" fill={color}/>
+      <path d="M6 17.3C6.4 15.9 7.6 15 9 15C10.4 15 11.6 15.9 12 17.3" stroke={color} strokeWidth="1.6" strokeLinecap="round"/>
+    </svg>
+  );
+}
+function IconGear({ color }){
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="12" r="3.1" stroke={color} strokeWidth="1.8"/>
+      <path d="M12 3.5V5.8M12 18.2V20.5M20.5 12H18.2M5.8 12H3.5M17.7 6.3L16.1 7.9M7.9 16.1L6.3 17.7M17.7 17.7L16.1 16.1M7.9 7.9L6.3 6.3"
+        stroke={color} strokeWidth="1.8" strokeLinecap="round"/>
+    </svg>
+  );
+}
+function IconFacebook(){
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <path d="M14 9H16.5V6H14C12.07 6 10.5 7.57 10.5 9.5V11H8.5V14H10.5V20H13.5V14H15.7L16.2 11H13.5V9.8C13.5 9.35 13.7 9 14 9Z" fill="#fff"/>
+    </svg>
+  );
+}
+function IconInstagram(){
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <rect x="4" y="4" width="16" height="16" rx="5" stroke="#fff" strokeWidth="1.8"/>
+      <circle cx="12" cy="12" r="3.4" stroke="#fff" strokeWidth="1.8"/>
+      <circle cx="16.6" cy="7.4" r="1.1" fill="#fff"/>
+    </svg>
+  );
+}
+function IconWhatsapp(){
+  return (
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none">
+      <path d="M12 3.5C7.3 3.5 3.5 7.3 3.5 12C3.5 13.6 3.9 15.1 4.7 16.3L3.5 20.5L7.9 19.3C9.1 19.9 10.5 20.3 12 20.3C16.7 20.3 20.5 16.5 20.5 11.8C20.5 7.3 16.7 3.5 12 3.5Z"
+        fill="#fff" opacity="0.15"/>
+      <path d="M12 4.2C7.7 4.2 4.2 7.7 4.2 12C4.2 13.5 4.6 14.9 5.4 16.1L4.3 19.7L8 18.6C9.2 19.3 10.6 19.7 12 19.7C16.3 19.7 19.8 16.2 19.8 11.9C19.8 7.7 16.3 4.2 12 4.2Z"
+        stroke="#fff" strokeWidth="1.3"/>
+      <path d="M9 9.3C9.1 8.9 9.5 8.9 9.8 8.9C10 8.9 10.2 8.9 10.4 9.4C10.6 9.9 11 10.9 11 11C11.1 11.1 11.1 11.3 11 11.4C10.8 11.7 10.6 11.9 10.8 12.2C11.4 13.2 12.2 14 13.3 14.5C13.6 14.6 13.7 14.6 13.9 14.3C14.1 14.1 14.4 13.7 14.6 13.5C14.8 13.3 15 13.3 15.3 13.4C15.6 13.5 16.6 14 16.8 14.1C17 14.2 17.2 14.3 17.2 14.5C17.3 15.4 17 16.2 15.9 16.5C14.4 16.9 12.9 16.3 11.6 15.6C9.9 14.6 8.6 13.1 7.9 11.3C7.5 10.4 7.6 9.6 9 9.3Z" fill="#fff"/>
+    </svg>
+  );
+}
+
+const socialBtn = { border:"none", display:"flex", alignItems:"center", justifyContent:"center", textDecoration:"none" };
+const pillBtnStyle = { padding:"5px 10px", borderRadius:999, fontSize:11.5, fontWeight:700, textDecoration:"none", border:`1px solid ${T.border}`, whiteSpace:"nowrap" };
+
+function Chip({ active, onClick, label, dot }){
+  return (
+    <button onClick={onClick} style={{ display:"flex", alignItems:"center", gap:6, padding:"7px 13px", borderRadius:999, whiteSpace:"nowrap",
+      border:`1px solid ${active ? T.ink : T.border}`, background: active ? T.ink : T.surface, color: active ? "#fff" : T.ink, fontSize:13, fontWeight:600, flexShrink:0 }}>
+      {dot && <span style={{ width:8, height:8, borderRadius:"50%", background:dot }} />}
+      {label}
+    </button>
+  );
+}
+
+function ClientesView({ clients, apptsForClient, onOpen, onNew }){
+  const [q, setQ] = useState("");
+  const filtered = useMemo(() => {
+    const query = q.trim().toLowerCase();
+    const list = !query ? clients : clients.filter(c => c.name.toLowerCase().includes(query) || (c.phone||"").includes(query));
+    return [...list].sort((a,b) => a.name.localeCompare(b.name));
+  }, [clients, q]);
+
+  return (
+    <div style={{ flex:1, display:"flex", flexDirection:"column", minHeight:0 }}>
+      <div style={{ padding:"12px 16px", background:T.surface, borderBottom:`1px solid ${T.border}` }}>
+        <input value={q} onChange={e => setQ(e.target.value)} placeholder="Buscar cliente o teléfono" style={inputStyle} />
+      </div>
+      <div style={{ flex:1, overflowY:"auto", padding:"10px 14px 100px" }}>
+        {filtered.map(c => <ClientCard key={c.id} client={c} history={apptsForClient(c)} onClick={() => onOpen(c)} />)}
+        {filtered.length === 0 && <div style={{ textAlign:"center", color:T.inkSoft, fontSize:13.5, padding:"40px 20px" }}>Sin resultados.</div>}
+      </div>
+      <button onClick={onNew} style={{ position:"absolute", right:18, bottom:22, width:56, height:56, borderRadius:"50%",
+        background:T.ink, color:"#fff", border:"none", fontSize:26, boxShadow:"0 8px 20px rgba(46,58,34,0.35)", display:"flex", alignItems:"center", justifyContent:"center" }}>
+        +
+      </button>
+    </div>
+  );
+}
+
+function ClientCard({ client, history, onClick }){
+  const last = history[0];
+  const nb = nextBirthday(client.birthdate);
+  const dLeft = nb ? daysUntil(nb) : null;
+  const soonBirthday = dLeft !== null && dLeft <= 1;
+  const initials = client.name.split(" ").slice(0,2).map(w => w[0]).join("").toUpperCase();
+  return (
+    <button onClick={onClick} style={{ width:"100%", display:"flex", alignItems:"center", gap:12, padding:"12px 8px", borderRadius:12, border:"none", background:"transparent", textAlign:"left", borderBottom:`1px solid ${T.border}` }}>
+      <div style={{ width:38, height:38, borderRadius:"50%", background:T.olive, color:"#fff", fontSize:13, fontWeight:700, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>{initials}</div>
+      <div style={{ flex:1, minWidth:0 }}>
+        <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+          <span style={{ fontSize:14.5, fontWeight:700, color:T.ink, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{client.name}</span>
+          {soonBirthday && <span style={{ fontSize:12 }} title="Cumpleaños">🎂</span>}
+        </div>
+        <div style={{ fontSize:12, color:T.inkSoft, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>
+          {last ? `Última visita: ${last.service} · ${formatFullDate(new Date(last.date+"T00:00:00"))}` : "Sin visitas registradas"}
+        </div>
+      </div>
+    </button>
+  );
+}
+
+function ClientDetail({ client, history, proOf, onUpdate, onSendBirthday, onDelete, onClose }){
+  const age = calcAge(client.birthdate);
+  const nb = nextBirthday(client.birthdate);
+  const dLeft = nb ? daysUntil(nb) : null;
+  const showBirthdayCard = dLeft !== null && dLeft <= 1;
+  const last = history[0];
+  const initials = client.name.split(" ").slice(0,2).map(w => w[0]).join("").toUpperCase();
+  const clinical = client.clinical || blankClinical();
+  const plans = client.treatmentPlans || [];
+
+  function setClinical(key, value){ onUpdate({ clinical: { ...clinical, [key]: value } }); }
+  function updatePlan(id, patch){ onUpdate({ treatmentPlans: plans.map(p => p.id===id ? {...p, ...patch} : p) }); }
+  function toggleSession(id, idx){
+    const plan = plans.find(p => p.id===id); if(!plan) return;
+    const sessions = [...plan.sessions]; sessions[idx] = !sessions[idx];
+    updatePlan(id, { sessions });
+  }
+  function addPlan(){ onUpdate({ treatmentPlans: [...plans, blankTreatmentPlan("")] }); }
+  function removePlan(id){ onUpdate({ treatmentPlans: plans.filter(p => p.id!==id) }); }
+
+  return (
+    <div>
+      <div style={{ background:T.olive, padding:"20px 20px 22px", color:"#fff" }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
+          <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+            <div style={{ width:44, height:44, borderRadius:"50%", background:"rgba(255,255,255,0.25)", display:"flex", alignItems:"center", justifyContent:"center", fontWeight:700 }}>{initials}</div>
+            <div>
+              <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:23, fontWeight:700 }}>{client.name}</div>
+              {age !== null && <div style={{ fontSize:12, opacity:0.85 }}>{age} años</div>}
+            </div>
+          </div>
+          <div style={{ display:"flex", gap:8 }}>
+            <button onClick={() => printClient(client, history, proOf)} title="Imprimir ficha"
+              style={{ background:"rgba(255,255,255,0.25)", border:"none", borderRadius:8, width:30, height:30, color:"#fff", fontSize:15 }}>🖨</button>
+            <button onClick={() => { if(window.confirm(`¿Borrar la ficha de ${client.name}? Esta acción no se puede deshacer.`)) onDelete(); }} title="Borrar cliente"
+              style={{ background:"rgba(255,255,255,0.25)", border:"none", borderRadius:8, width:30, height:30, color:"#fff", fontSize:15 }}>🗑️</button>
+            <button onClick={onClose} style={{ background:"rgba(255,255,255,0.25)", border:"none", borderRadius:8, width:30, height:30, color:"#fff", fontSize:15 }}>✕</button>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ padding:"18px 20px 28px" }}>
+        {showBirthdayCard && (
+          <div style={{ background:"#FBF1DE", border:"1px solid #EFDDB0", borderRadius:12, padding:12, marginBottom:16 }}>
+            <div style={{ fontSize:12.5, fontWeight:700, color:"#8C6A2A", marginBottom:6 }}>
+              🎂 {dLeft === 0 ? "¡Hoy es su cumpleaños!" : "Cumple mañana"}
+            </div>
+            <div style={{ fontSize:12, color:T.ink, background:"#FFF", border:`1px solid ${T.border}`, borderRadius:8, padding:"8px 10px", marginBottom:10, lineHeight:1.4 }}>
+              {buildBirthdayMessage(client)}
+            </div>
+            {client.phone ? (
+              <div style={{ display:"flex", gap:8 }}>
+                <a href={`tel:${client.phone.replace(/[^0-9+]/g,"")}`}
+                  style={{ flex:1, textAlign:"center", padding:"10px", borderRadius:9, fontWeight:700, fontSize:13, textDecoration:"none", border:`1px solid ${T.border}`, background:T.surface, color:T.ink }}>
+                  📞 Llamar
+                </a>
+                <a href={waLink(client.phone, buildBirthdayMessage(client))} target="_blank" rel="noreferrer" onClick={onSendBirthday}
+                  style={{ flex:1, textAlign:"center", padding:"10px", borderRadius:9, fontWeight:700, fontSize:13, textDecoration:"none", background:"#25D366", color:"#fff" }}>
+                  Enviar WhatsApp
+                </a>
+              </div>
+            ) : (
+              <div style={{ fontSize:12, color:"#C1493B" }}>Agrega su teléfono para poder saludarlo.</div>
+            )}
+          </div>
+        )}
+
+        <SectionLabel>Ficha personal</SectionLabel>
+        <Field label="Teléfono (WhatsApp)">
+          <input type="tel" value={client.phone||""} onChange={e => onUpdate({ phone:e.target.value })} placeholder="+56 9 1234 5678" style={inputStyle} />
+        </Field>
+        <Field label="Fecha de nacimiento">
+          <input type="date" value={client.birthdate||""} onChange={e => onUpdate({ birthdate:e.target.value })} style={inputStyle} />
+        </Field>
+        <Field label="Tratamientos">
+          <input value={client.tratamientos||""} onChange={e => onUpdate({ tratamientos:e.target.value })} placeholder="Ej: Limpieza facial, Masaje" style={inputStyle} />
+        </Field>
+        <Field label="Notas">
+          <textarea value={client.notes||""} onChange={e => onUpdate({ notes:e.target.value })} placeholder="Preferencias, observaciones..." rows={2} style={{ ...inputStyle, resize:"vertical" }} />
+        </Field>
+
+        <SectionLabel>Datos clínicos</SectionLabel>
+        <div style={{ marginBottom:16 }}>
+          {CLINICAL_FIELDS.map(f => (
+            <div key={f.key} style={{ display:"flex", alignItems:"center", gap:10, padding:"6px 0", borderBottom:`1px solid ${T.border}` }}>
+              <span style={{ width:110, flexShrink:0, fontSize:12.5, color:T.inkSoft }}>{f.label}</span>
+              <input value={clinical[f.key]||""} onChange={e => setClinical(f.key, e.target.value)} placeholder="No"
+                style={{ flex:1, border:"none", background:"transparent", fontSize:13.5, padding:"4px 0", outline:"none" }} />
+            </div>
+          ))}
+        </div>
+
+        <SectionLabel>Seguimiento de tratamientos</SectionLabel>
+        <div style={{ marginBottom:16 }}>
+          {plans.map(p => {
+            const validez = fechaValidez(p.fechaInicio);
+            return (
+              <div key={p.id} style={{ border:`1px solid ${T.border}`, borderRadius:12, padding:12, marginBottom:10 }}>
+                <div style={{ display:"flex", gap:8, marginBottom:8 }}>
+                  <input value={p.name} onChange={e => updatePlan(p.id, { name:e.target.value })} placeholder="Nombre del tratamiento"
+                    style={{ ...inputStyle, flex:1, padding:"8px 10px", fontSize:13.5 }} />
+                  <button onClick={() => removePlan(p.id)} title="Quitar" style={{ border:`1px solid ${T.border}`, background:T.surface, borderRadius:9, width:36, color:"#C1493B" }}>✕</button>
+                </div>
+                <div style={{ display:"flex", gap:8, marginBottom:10 }}>
+                  <div style={{ flex:1 }}>
+                    <span style={{ fontSize:10.5, color:T.inkSoft, textTransform:"uppercase" }}>Fecha de inicio</span>
+                    <input type="date" value={p.fechaInicio} onChange={e => updatePlan(p.id, { fechaInicio:e.target.value })} style={{ ...inputStyle, padding:"7px 9px", fontSize:12.5 }} />
+                  </div>
+                  <div style={{ flex:1 }}>
+                    <span style={{ fontSize:10.5, color:T.inkSoft, textTransform:"uppercase" }}>Fecha de validez</span>
+                    <div style={{ ...inputStyle, padding:"7px 9px", fontSize:12.5, background:"#F1EFE7", color:T.inkSoft }}>
+                      {validez ? formatFullDate(validez) : "—"}
+                    </div>
+                  </div>
+                </div>
+                <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+                  {p.sessions.map((done, idx) => (
+                    <button key={idx} onClick={() => toggleSession(p.id, idx)}
+                      style={{ width:28, height:28, borderRadius:"50%", border:`1px solid ${done ? T.olive : T.border}`,
+                        background: done ? T.olive : T.surface, color: done ? "#fff" : T.inkSoft, fontSize:11.5, fontWeight:700 }}>
+                      {idx+1}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+          <button onClick={addPlan} style={{ width:"100%", padding:"10px", borderRadius:10, border:`1px dashed ${T.border}`, background:"transparent", color:T.olive, fontWeight:700, fontSize:13 }}>
+            + Agregar tratamiento
+          </button>
+        </div>
+
+        <SectionLabel>Último agendamiento</SectionLabel>
+        {last ? (
+          <div style={{ border:`1px solid ${T.border}`, borderRadius:10, padding:"10px 12px", marginBottom:16, fontSize:13 }}>
+            <div style={{ fontWeight:700 }}>{last.service}</div>
+            <div style={{ color:T.inkSoft, fontSize:12 }}>{formatFullDate(new Date(last.date+"T00:00:00"))} · {timeLabel(mins(last.start))} · {proOf(last.profId)?.name}</div>
+          </div>
+        ) : (
+          <div style={{ color:T.inkSoft, fontSize:12.5, marginBottom:16 }}>Todavía no tiene citas registradas.</div>
+        )}
+
+        <SectionLabel>{`Historial (${history.length})`}</SectionLabel>
+        <div>
+          {history.map(h => (
+            <Row key={h.id} text={`${h.service} · ${formatFullDate(new Date(h.date+"T00:00:00"))}`} dot={proOf(h.profId)?.color} />
+          ))}
+          {history.length === 0 && <div style={{ color:T.inkSoft, fontSize:12.5 }}>Sin historial todavía.</div>}
+        </div>
+      </div>
+    </div>
+  );
+}
+function SectionLabel({ children }){
+  return <div style={{ marginTop:18, marginBottom:8, fontSize:11, fontWeight:700, color:T.inkSoft, textTransform:"uppercase", letterSpacing:"0.05em" }}>{children}</div>;
+}
+
+function BackupView({ clients, appointments, onRestore, pros, onAddPro, onRemovePro, services, onAddService, onRemoveService, onClose }){
+  const fileRef = useRef(null);
+  const [msg, setMsg] = useState(null);
+  const [newName, setNewName] = useState("");
+  const [newRole, setNewRole] = useState("");
+  const [newService, setNewService] = useState("");
+
+  function download(){
+    const payload = { exportedAt: new Date().toISOString(), spa: SPA_NAME, clients, appointments, pros, services };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const stamp = iso(new Date());
+    a.href = url;
+    a.download = `backup-sonia-lanoza-${stamp}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function handleFile(e){
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const data = JSON.parse(reader.result);
+        if (!Array.isArray(data.clients) || !Array.isArray(data.appointments)) throw new Error("Formato inválido");
+        onRestore(data);
+        setMsg({ ok:true, text:`Restaurado: ${data.clients.length} clientes, ${data.appointments.length} citas${data.pros ? `, ${data.pros.length} profesionales` : ""}.` });
+      } catch(err){
+        setMsg({ ok:false, text:"No se pudo leer el archivo. Asegúrate de elegir un backup exportado desde esta app." });
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  }
+
+  function submitNewPro(){
+    if(!newName.trim()) return;
+    onAddPro(newName, newRole);
+    setNewName(""); setNewRole("");
+  }
+  function submitNewService(){
+    if(!newService.trim()) return;
+    onAddService(newService);
+    setNewService("");
+  }
+
+  return (
+    <div style={{ padding:"18px 20px 28px" }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
+        <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:22, fontWeight:700 }}>Configuración</div>
+        <button onClick={onClose} style={{ ...navBtn, border:"none" }}>✕</button>
+      </div>
+
+      <SectionLabel>Profesionales</SectionLabel>
+      <div style={{ marginBottom:14 }}>
+        {pros.map(p => (
+          <div key={p.id} style={{ display:"flex", alignItems:"center", gap:10, padding:"8px 0", borderBottom:`1px solid ${T.border}` }}>
+            <div style={{ width:32, height:32, borderRadius:"50%", background:p.color, color:"#fff", fontSize:12, fontWeight:700, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>{p.initials}</div>
+            <div style={{ flex:1, minWidth:0 }}>
+              <div style={{ fontSize:13.5, fontWeight:700, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{p.name}</div>
+              <div style={{ fontSize:11.5, color:T.inkSoft }}>{p.role}</div>
+            </div>
+            <button onClick={() => onRemovePro(p.id)} title="Eliminar" style={{ border:`1px solid ${T.border}`, background:T.surface, borderRadius:8, width:32, height:32, color:"#C1493B" }}>✕</button>
+          </div>
+        ))}
+      </div>
+      <div style={{ display:"flex", gap:8, marginBottom:8 }}>
+        <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Nombre" style={{ ...inputStyle, flex:1, padding:"9px 11px", fontSize:13 }} />
+        <input value={newRole} onChange={e => setNewRole(e.target.value)} placeholder="Rol (opcional)" style={{ ...inputStyle, flex:1, padding:"9px 11px", fontSize:13 }} />
+      </div>
+      <button onClick={submitNewPro} disabled={!newName.trim()} style={{ width:"100%", padding:"10px", borderRadius:10, border:`1px dashed ${T.border}`,
+        background:"transparent", color: newName.trim() ? T.olive : T.inkSoft, fontWeight:700, fontSize:13, marginBottom:6 }}>
+        + Agregar profesional
+      </button>
+      <div style={{ fontSize:11.5, color:T.inkSoft, marginBottom:8 }}>
+        El nombre de cada profesional aparece automáticamente en los mensajes de WhatsApp de sus propias citas. Ahora mismo hay una sola: Sonia Lanoza.
+      </div>
+
+      <SectionLabel>Tratamientos</SectionLabel>
+      <div style={{ marginBottom:14 }}>
+        {services.map(s => (
+          <div key={s.id} style={{ display:"flex", alignItems:"center", gap:10, padding:"8px 0", borderBottom:`1px solid ${T.border}` }}>
+            <div style={{ flex:1, fontSize:13.5, fontWeight:600 }}>{s.name}</div>
+            <button onClick={() => onRemoveService(s.id)} title="Eliminar" style={{ border:`1px solid ${T.border}`, background:T.surface, borderRadius:8, width:32, height:32, color:"#C1493B" }}>✕</button>
+          </div>
+        ))}
+        {services.length === 0 && <div style={{ color:T.inkSoft, fontSize:12.5, padding:"6px 0" }}>Sincronizando tratamientos…</div>}
+      </div>
+      <div style={{ display:"flex", gap:8, marginBottom:8 }}>
+        <input value={newService} onChange={e => setNewService(e.target.value)} placeholder="Nombre del tratamiento" style={{ ...inputStyle, flex:1, padding:"9px 11px", fontSize:13 }}
+          onKeyDown={e => { if(e.key === "Enter") submitNewService(); }} />
+      </div>
+      <button onClick={submitNewService} disabled={!newService.trim()} style={{ width:"100%", padding:"10px", borderRadius:10, border:`1px dashed ${T.border}`,
+        background:"transparent", color: newService.trim() ? T.olive : T.inkSoft, fontWeight:700, fontSize:13, marginBottom:6 }}>
+        + Agregar tratamiento
+      </button>
+      <div style={{ fontSize:11.5, color:T.inkSoft, marginBottom:8 }}>
+        Estos son los tratamientos que aparecen para elegir al agendar una cita nueva.
+      </div>
+
+      <SectionLabel>Copia de seguridad</SectionLabel>
+      <div style={{ fontSize:13, color:T.inkSoft, marginBottom:18, lineHeight:1.5 }}>
+        Los datos ya se guardan solos en la nube y se sincronizan automáticamente entre el celular y la computadora — no hace falta hacer nada para que se guarden.
+        Igual, te recomendamos descargar un backup de vez en cuando por las dudas. Restaurar un backup reemplaza todos los datos actuales por los del archivo.
+      </div>
+
+      <div style={{ border:`1px solid ${T.border}`, borderRadius:12, padding:14, marginBottom:14 }}>
+        <div style={{ fontSize:12.5, fontWeight:700, marginBottom:4 }}>Datos actuales en esta sesión</div>
+        <div style={{ fontSize:12.5, color:T.inkSoft }}>{clients.length} clientes · {appointments.length} citas · {pros.length} profesionales · {services.length} tratamientos</div>
+      </div>
+
+      <button onClick={download} style={{ width:"100%", background:T.ink, color:"#fff", border:"none", borderRadius:11, padding:"13px", fontWeight:700, fontSize:14, marginBottom:10 }}>
+        ⬇️ Descargar backup (.json)
+      </button>
+
+      <button onClick={() => fileRef.current && fileRef.current.click()} style={{ width:"100%", background:T.surface, color:T.ink, border:`1px solid ${T.border}`, borderRadius:11, padding:"13px", fontWeight:700, fontSize:14 }}>
+        ⬆️ Restaurar desde un backup
+      </button>
+      <input ref={fileRef} type="file" accept="application/json" onChange={handleFile} style={{ display:"none" }} />
+
+      {msg && (
+        <div style={{ marginTop:14, fontSize:12.5, padding:"10px 12px", borderRadius:9, background: msg.ok ? "#EAF0E3" : "#FDF3F1", color: msg.ok ? "#3E4E2C" : "#C1493B" }}>
+          {msg.text}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function NewClientForm({ sheet, setSheet, onSave, onClose }){
+  const set = (k,v) => setSheet(m => ({ ...m, [k]: v }));
+  return (
+    <div style={{ padding:"18px 20px 28px" }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
+        <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:22, fontWeight:700 }}>Nuevo cliente</div>
+        <button onClick={onClose} style={{ ...navBtn, border:"none" }}>✕</button>
+      </div>
+      <Field label="Nombre">
+        <input autoFocus value={sheet.name} onChange={e => set("name", e.target.value)} placeholder="Nombre del cliente" style={inputStyle} />
+      </Field>
+      <Field label="Teléfono (WhatsApp)">
+        <input type="tel" value={sheet.phone} onChange={e => set("phone", e.target.value)} placeholder="+56 9 1234 5678" style={inputStyle} />
+      </Field>
+      <Field label="Fecha de nacimiento">
+        <input type="date" value={sheet.birthdate} onChange={e => set("birthdate", e.target.value)} style={inputStyle} />
+      </Field>
+      <Field label="Tratamientos">
+        <input value={sheet.tratamientos} onChange={e => set("tratamientos", e.target.value)} placeholder="Ej: Limpieza facial, Masaje" style={inputStyle} />
+      </Field>
+      <Field label="Notas">
+        <textarea value={sheet.notes} onChange={e => set("notes", e.target.value)} rows={3} style={{ ...inputStyle, resize:"vertical" }} />
+      </Field>
+      <div style={{ fontSize:12, color:T.inkSoft, marginBottom:16 }}>Los datos clínicos y el seguimiento de sesiones se completan después, abriendo la ficha del cliente.</div>
+      <button onClick={onSave} disabled={!sheet.name.trim()} style={{ width:"100%", marginTop:6, background: sheet.name.trim() ? T.ink : "#C9C2AF",
+        color:"#fff", border:"none", borderRadius:11, padding:"14px", fontWeight:700, fontSize:15 }}>
+        Guardar cliente
+      </button>
+    </div>
+  );
+}
+
+function BottomSheet({ children, onClose }){
+  return (
+    <div className="sheet-overlay" onClick={onClose} style={{ position:"fixed", inset:0, background:"rgba(46,58,34,0.4)", display:"flex", alignItems:"flex-end", zIndex:50 }}>
+      <div className="sheet-panel" onClick={e => e.stopPropagation()} style={{ background:T.surface, borderRadius:"20px 20px 0 0", width:"100%", maxWidth:480, margin:"0 auto",
+        maxHeight:"88vh", overflowY:"auto", boxShadow:"0 -10px 40px rgba(46,58,34,0.25)" }}>
+        <div style={{ width:40, height:4, borderRadius:2, background:T.border, margin:"10px auto 0" }} />
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function Field({ label, children }){
+  return (
+    <div style={{ marginBottom:14 }}>
+      <label style={{ display:"block", fontSize:11, fontWeight:700, color:T.inkSoft, textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:6 }}>{label}</label>
+      {children}
+    </div>
+  );
+}
+const inputStyle = { width:"100%", padding:"11px 12px", borderRadius:10, border:`1px solid ${T.border}`, fontSize:15, background:"#FCFBF8" };
+
+function NewForm({ sheet, setSheet, onSave, onClose, clients, pros, services }){
+  const set = (k,v) => setSheet(m => ({ ...m, [k]: v }));
+  function onClientChange(name){
+    set("client", name);
+    const match = clients.find(c => c.name.toLowerCase() === name.trim().toLowerCase());
+    if (match && !sheet.phone) set("phone", match.phone || "");
+  }
+  return (
+    <div style={{ padding:"18px 20px 28px" }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
+        <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:22, fontWeight:700 }}>Nueva cita</div>
+        <button onClick={onClose} style={{ ...navBtn, border:"none" }}>✕</button>
+      </div>
+      <Field label="Cliente">
+        <input autoFocus list="clientes-list" value={sheet.client} onChange={e => onClientChange(e.target.value)} placeholder="Nombre del cliente" style={inputStyle} />
+        <datalist id="clientes-list">
+          {clients.map(c => <option key={c.id} value={c.name} />)}
+        </datalist>
+      </Field>
+      <Field label="Teléfono (WhatsApp)">
+        <input type="tel" value={sheet.phone} onChange={e => set("phone", e.target.value)} placeholder="+56 9 1234 5678" style={inputStyle} />
+      </Field>
+      <Field label="Servicio">
+        <select value={sheet.service} onChange={e => set("service", e.target.value)} style={inputStyle}>
+          {services.map(s => <option key={s.id}>{s.name}</option>)}
+        </select>
+      </Field>
+      <Field label="Profesional">
+        <select value={sheet.profId} onChange={e => set("profId", e.target.value)} style={inputStyle}>
+          {pros.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+      </Field>
+      <div style={{ display:"flex", gap:10 }}>
+        <div style={{ flex:1 }}><Field label="Fecha"><input type="date" value={sheet.date} onChange={e => set("date", e.target.value)} style={inputStyle} /></Field></div>
+        <div style={{ flex:1 }}><Field label="Hora"><input type="time" value={sheet.start} onChange={e => set("start", e.target.value)} style={inputStyle} /></Field></div>
+      </div>
+      <Field label="Duración">
+        <select value={sheet.duration} onChange={e => set("duration", e.target.value)} style={inputStyle}>
+          {[15,30,45,60,90,120].map(m => <option key={m} value={m}>{m} min</option>)}
+        </select>
+      </Field>
+      <div style={{ display:"flex", gap:8, alignItems:"flex-start", background:"#F0ECDC", borderRadius:10, padding:"10px 12px", marginBottom:16, fontSize:12.5, color:T.olive }}>
+        <span>🌿</span>
+        <span>El día antes de la cita vas a poder enviarle a {sheet.client.trim() ? sheet.client.trim().split(" ")[0] : "tu cliente"} un recordatorio por WhatsApp para que confirme su asistencia.</span>
+      </div>
+      <button onClick={onSave} disabled={!sheet.client.trim()} style={{ width:"100%", marginTop:6, background: sheet.client.trim() ? T.ink : "#C9C2AF",
+        color:"#fff", border:"none", borderRadius:11, padding:"14px", fontWeight:700, fontSize:15 }}>
+        Agendar cita
+      </button>
+    </div>
+  );
+}
+
+function Detail({ appt, pro, onDelete, onToggle, onSendReminder, onConfirmReminder, onClose }){
+  const rd = reminderDate(appt);
+  const message = buildReminderMessage(appt, pro);
+  const hasPhone = !!(appt.phone && appt.phone.trim());
+  const badge = appt.reminderStatus === "confirmada"
+    ? { text:"Cliente confirmó", bg:"#EAF0E3", fg:"#3E4E2C" }
+    : appt.reminderStatus === "enviado"
+    ? { text:"Recordatorio enviado", bg:"#FBF1DE", fg:"#8C6A2A" }
+    : { text:"Recordatorio pendiente", bg:"#F1EFE7", fg:T.inkSoft };
+
+  return (
+    <div>
+      <div style={{ background:pro.color, borderRadius:"0", padding:"20px 20px 22px", color:"#fff" }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
+          <div>
+            <div style={{ fontSize:11, opacity:0.85, textTransform:"uppercase", fontWeight:700, letterSpacing:"0.06em" }}>{appt.status}</div>
+            <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:24, fontWeight:700, marginTop:2 }}>{appt.client}</div>
+          </div>
+          <button onClick={onClose} style={{ background:"rgba(255,255,255,0.25)", border:"none", borderRadius:8, width:30, height:30, color:"#fff", fontSize:15 }}>✕</button>
+        </div>
+      </div>
+      <div style={{ padding:"18px 20px 28px" }}>
+        <Row text={appt.service} />
+        <Row text={`${timeLabel(mins(appt.start))} · ${appt.duration} min`} />
+        <Row text={`${pro.name} · ${pro.role}`} dot={pro.color} />
+        {hasPhone && <Row text={appt.phone} />}
+
+        <div style={{ marginTop:18, border:`1px solid ${T.border}`, borderRadius:14, padding:14 }}>
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:8 }}>
+            <span style={{ fontSize:12.5, fontWeight:700, color:T.ink }}>Recordatorio de confirmación</span>
+            <span style={{ fontSize:10.5, fontWeight:700, padding:"3px 9px", borderRadius:999, background:badge.bg, color:badge.fg }}>{badge.text}</span>
+          </div>
+          <div style={{ fontSize:12.5, color:T.inkSoft, marginBottom:10 }}>
+            Se sugiere enviarlo el {formatFullDate(rd)} (un día antes de la cita).
+          </div>
+          <div style={{ fontSize:12.5, color:T.ink, background:"#FAF8F1", border:`1px solid ${T.border}`, borderRadius:10, padding:"9px 11px", marginBottom:12, lineHeight:1.4 }}>
+            {message}
+          </div>
+
+          {!hasPhone && (
+            <div style={{ fontSize:12, color:"#C1493B", marginBottom:8 }}>Agrega el teléfono del cliente para poder enviarle el recordatorio.</div>
+          )}
+
+          {appt.reminderStatus !== "confirmada" && (
+            <div style={{ display:"flex", gap:8 }}>
+              <a href={hasPhone ? waLink(appt.phone, message) : undefined} target="_blank" rel="noreferrer"
+                onClick={(e) => { if(!hasPhone){ e.preventDefault(); return; } onSendReminder(); }}
+                style={{ flex:1, textAlign:"center", padding:"11px", borderRadius:10, fontWeight:700, fontSize:13, textDecoration:"none",
+                  background: hasPhone ? "#25D366" : "#D8D2C0", color:"#fff", opacity: hasPhone ? 1 : 0.7, pointerEvents: hasPhone ? "auto" : "none" }}>
+                Enviar por WhatsApp
+              </a>
+              {appt.reminderStatus === "enviado" && (
+                <button onClick={onConfirmReminder} style={{ flex:1, padding:"11px", borderRadius:10, border:`1px solid ${T.border}`, background:T.surface, fontWeight:700, fontSize:13 }}>
+                  Simular respuesta "Sí"
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div style={{ display:"flex", gap:10, marginTop:14 }}>
+          <button onClick={onToggle} style={{ flex:1, padding:"12px", borderRadius:11, border:`1px solid ${T.border}`, background:T.surface, fontWeight:600, fontSize:14 }}>
+            {appt.status==="confirmada" ? "Marcar pendiente" : "Confirmar"}
+          </button>
+          <button onClick={onDelete} style={{ padding:"12px 16px", borderRadius:11, border:"1px solid #F3D8D3", background:"#FDF3F1", color:"#C1493B", fontWeight:600, fontSize:14 }}>
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+function Row({ text, dot }){
+  return (
+    <div style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 0", borderBottom:`1px solid ${T.border}`, fontSize:14.5 }}>
+      {dot ? <span style={{ width:12, height:12, borderRadius:"50%", background:dot }} /> : <span style={{ width:12 }} />}
+      {text}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
